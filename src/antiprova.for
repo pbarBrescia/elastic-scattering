@@ -80,18 +80,18 @@ c inizializzazione (in parte interattiva in parte no)
       pi = 4.d0*atan(1.d0)
 
 c momentum is converted into 1/fm
-      pfm = pmevc/197.32 
+      pfm = pmevc/197.32
 
       do 7981, iij=1,1
       aq = pfm*iij
-      aktr = 0.d0
-      aklon = aq
-      akp = sqrt(aklon*aklon+aktr*aktr)
+      aktr = 0.d0                                     !! k transverse (=0)
+      aklon = aq                                      !! k longitudinal
+      akp = sqrt(aklon*aklon+aktr*aktr)               !! |k|
       sigmaint = 0.d0
 c      do 7345, icost = 100,-100,-1
 c      ucost = 1.d-2*icost
       do 7345, ittt = 0,50,1
-         utheta = ittt*2.d-2*3.14159265
+         utheta = ittt*2.d-2*3.14159265               !! theta from 0 to pi ( step = (1/50)*pi )  
          ucost = cos(utheta)
 c risoluzione delle equazioni radiali (in "onda")
       call dstwav4(onda,maxstep,u0,w0,z0p,akp)    
