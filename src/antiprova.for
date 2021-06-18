@@ -55,21 +55,21 @@ c projectile charge
       z0p = -1.d0 
 
 c target mass and radius 
-      r0mt = num2 ! old value: 40.078d0
-      z0t = num3  ! old value: 20.d0
+      r0mt = num2 ! old value: 40.078d0 	      !! mass of target in amu
+      z0t = num3  ! old value: 20.d0 		!! Z of target in electron charge
 
 c lab momentum MeV/c (rescalable many times in do 7981, a few lines below)
       pmevc = num1 ! old value: 50.d0
 
 c potential real and imaginary strength, radius/(A^1/3), diffuseness  
-      u0 = 30.d0
-      w0 = 150.d0
-      w0d = 0.d0
-      r0r = 1.25d0
-      r0i = 1.25d0
-      r0c = 1.2d0
-      a0r = 0.6d0
-      a0i = 0.5d0
+      u0 = 30.d0 			      !! 30 MeV
+      w0 = 150.d0 			!! 150 MeV
+      w0d = 0.d0 			      !! -> SURFACE TERM NOT PRESENT!
+      r0r = 1.25d0			!! r0*A^1/3 = Nuclear radius 
+      r0i = 1.25d0			!! (imaginary and real part of optical potential)
+      r0c = 1.2d0 			!! r0c*A^1/3 = Coulomb radius 
+      a0r = 0.6d0			      !! Diffusness (real)
+      a0i = 0.5d0			      !! Diffusness (imaginary)
 
 ccc END PARAMETERS
 
@@ -262,7 +262,7 @@ c625   continue
       return
       end
 
-
+      !! NOT CALLED IN THIS CASE! !!
       subroutine integrale(fb,r,dr,nc,nstp1,nstp3,int,result)
 
 c     ex programma 13d11.for
@@ -339,6 +339,7 @@ c onda wood-saxon s interpolata
       return
       end
 
+      !! NOT CALLED IN THIS CASE! !!
       subroutine funzione(efe,ucost,h,ak,aq,mstep,aqp)   
 
       implicit real*8(a-h,o-z)
@@ -383,7 +384,7 @@ c calcolo polinomi di legendre in cos(u)
       return
       end
 
-
+      !! NOT CALLED IN THIS CASE! !!
       subroutine bessel5(maxstep,akh,aqh,bsl0,bsl1)
 
 c calcola le due funzioni di indice piu` basso che compaiono nello 
@@ -465,6 +466,8 @@ c741   continue
       return
       end
 
+
+      !! NOT CALLED IN THIS CASE! !!
       subroutine bessel7(lmax,maxstep,nstp3,effe,bsl0,bsl1,dwav,
      *akp,akq,h)
       implicit real*8 (a-h,o-z)
@@ -551,6 +554,7 @@ c      dwav(n,i,1) = asta
       return
       end
 
+      !! NOT CALLED IN THIS CASE! !!
       subroutine somma(lmax,maxstep,nstp3,effe,dwav,
      *akp,akq,h,sum1,sum2)
       implicit real*8 (a-h,o-z)
@@ -685,7 +689,7 @@ c      rk = rk*convert;
 c      EPCM=EP*RMT/(RMT+RMP)
  401  NRMAX=RMAX/H+0.5
       RMAX=NRMAX*H
-      RMTCH=RMAX-3.0*H
+      RMTCH=RMAX-3.0*H 			  !! Matching R -> to find delta?
       A1=2.*FM0*RMU/HXC**2
       A12=ZP
       RC=A11*ROC
@@ -704,7 +708,7 @@ c      RK=sqrt(RKSQ)
       FR=exp(  RR/AR)
       FI=exp(  RI/AI)
       GAMMA=ESQ*ZT*ZP/(2.*EPCM*RC)
-      RROCSQ=1.0/(RKSQ*RC*RC)
+      RROCSQ=1.0/(RKSQ*RC*RC) 	   !! 1/(k^2*r^2)
 
 c      print *,rk,epcm,rmp,rmt,convert
 
@@ -723,25 +727,28 @@ c ---------------------------------------
       IL=IL+1
       YDWR(1,IL)=0.0
  10   YDWI(1,IL)=0.0
-      DO 16 I=1,2
+      DO 16 I=1,2 							!! What is I?
       ISQ=I*I
       IFO=ISQ*ISQ
       FR=FR*ER
       FI=FI*EI
-      UC(I)=UO*FR/(EPCM*(1.0+FR))
-      WC(I)=(WO*FI/(1.0+FI)+4.0*WOD*FI/(1.0+FI)**2)/EPCM
-      RKR(I)=1.0-3.0*GAMMA+UC(I)
+      UC(I)=UO*FR/(EPCM*(1.0+FR))					!! Real potential normalized for energy
+      WC(I)=(WO*FI/(1.0+FI)+4.0*WOD*FI/(1.0+FI)**2)/EPCM 	!! N.B: W0D = 0 !!
+      RKR(I)=1.0-3.0*GAMMA+UC(I) 					!! Coulomb part of potential (?)
       IL=0
-      DO 16 LP1=LMINP1,LMAXP1
+      DO 16 LP1=LMINP1,LMAXP1 					!! LP1 = l (?)
       IL=IL+1
-      L=LP1-1
-      A3=1.d0/(4.d0*L+6.d0)
+      L=LP1-1 								!! l-1 (?)
+      A3=1.d0/(4.d0*L+6.d0) 						!! What are these factors? -> angular momentum?
       A5=1.0/(8.d0*L+20.d0)
-      AR2=-RKR(I)*A3
-      AI2=-WC(I)*A3
-      AR4=-(RKR(I)*AR2-WC(I)*AI2+GAMMA*RROCSQ)*A5
-      AI4=-(RKR(I)*AI2+WC(I)*AR2)*A5
+      AR2=-RKR(I)*A3 							!! Add a factor to Uc -> Why?
+      AI2=-WC(I)*A3 							!! Add a factor to Wc -> Why?
+      AR4=-(RKR(I)*AR2-WC(I)*AI2+GAMMA*RROCSQ)*A5 		!! TO UNDERSTAND !!
+      AI4=-(RKR(I)*AI2+WC(I)*AR2)*A5 				!! TO UNDERSTAND !!
 
+      !! These are constants/coefficients to add
+      !! in the definitions of YDWR and YDWI.
+      !! My opinion: weight of spherical harmonics
       if (lp1.le.101) then
       	if (i.eq.1) then
       	  alfaspeed = 1.d0
@@ -769,12 +776,15 @@ c ---------------------------------------
       	end if
       end if
 
+      !! YDWR/YDWI
+      !! My opinion: spherical harmonics (first terms)
+      !! for real and imaginary parts
       YDWR(I+1,IL)= alfaspeed*(1.d0+AR2*RKSQ*ISQ*HSQ+AR4*RKFO*IFO
      1*HFO)
  16   YDWI(I+1,IL)= alfaspeed*(AI2*RKSQ*ISQ*HSQ+AI4*RKFO*IFO*HFO)
       C1=1.5d0/RC
       C2=-0.5d0/(RC**3)
-      COUL=ESQ*A1*ZT*ZP
+      COUL=ESQ*A1*ZT*ZP             !! COUL = 2m*e^2*Zp*Zt/h_bar^2
       A8=HSQ/12.d0
       DO 27 I=1,2
       RX(I)=I*H
@@ -782,18 +792,18 @@ c ---------------------------------------
       RERXSQ(I)=RERX(I)**2
       UC(I)=RKSQ*UC(I)
       WC(I)=RKSQ*WC(I)
-      C3=COUL*F1BDS2(A12,RC,RX(I),RERX(I),C1,C2)
-      RKR(I)=UC(I)+RKSQ-C3
-      IF (NONLOC) 19,18,18
+      C3=COUL*F1BDS2(A12,RC,RX(I),RERX(I),C1,C2)      !! SEE SUBROUTINE F1BDS2
+      RKR(I)=UC(I)+RKSQ-C3          !! TOTAL K (REAL PART) -> TOTAL ENERGY/(2M/H_BAR^2) !!
+      IF (NONLOC) 19,18,18          !! NONLOC >0 <0 =0
  18   rextra(1,I+1)=UC(I)
       rextra(2,I+1)=WC(I)
       rextra(3,I+1)=C3
       rextra(4,I+1)=RKR(I)
- 19   IL=0
+ 19   IL=0                          !! NONLOC>0
       DO 27 LP1=LMINP1,LMAXP1
       IL=IL+1
       L=LP1-1
-      A10=L*LP1*RERXSQ(I)
+      A10=L*LP1*RERXSQ(I)           !! l(l-1)/Rx^2
       GO TO (24,25),I
  24   RKRT1(IL)=1.d0+A8*(RKR(1)-A10)
       RKIT1(IL)=A8*WC(1)
@@ -810,13 +820,13 @@ c -------------------------------------
 
       UOTA1=A1*UO
       WOTA1=A1*WO
-      WODTA1=WOD*A1
+      WODTA1=WOD*A1   !! SURFACE TERM = 0 !!
       RX(3)=RX(2)
       IUL=RMTCH/H+3.5d0
 
 c do loop fondamentale
 
-      DO 39 I=3,IUL
+      DO 39 I=3,IUL                                         !! SIMILAR TO PREVIOUS PART...
       RX(3)=RX(3)+H
       rx45 = i*h
       RERX(3)=1.0/RX(3)
@@ -826,7 +836,7 @@ c do loop fondamentale
       FI=FI*EI
       UC(3)=UOTA1*FR/(1.d0+FR)
       WC(3)=WOTA1*FI/(1.d0+FI)+4.d0*WODTA1*FI/(1.d0+FI)**2
-      C3=COUL*F1BDS2(A12,RC,RX(3),RERX(3),C1,C2)
+      C3=COUL*F1BDS2(A12,RC,RX(3),RERX(3),C1,C2)            !! SEE SUBROUTINE F1BDS2
       RKR(3)=UC(3)+RKSQ-C3
       IF (ILC) 30,31,32
  30   IF (NONLOC) 33,31,31
@@ -846,9 +856,9 @@ c do loop fondamentale
       A10=L*LP1*RERXSQ(3)
       RKRT3(IL)=1.d0+A8*(RKR(3)-A10)
       RKIT3(IL)=A8*WC(3)
-      A81=12.d0-10.d0*RKRT2(IL)
-      A82=10.d0*RKIT2(IL)
-      RNR=A81*YDWR(I,IL)+A82*YDWI(I,IL)-RKRT1(IL)*YDWR(I-1,IL)+R
+      A81=12.d0-10.d0*RKRT2(IL)                                   !! NEW COEFFICIENT !!
+      A82=10.d0*RKIT2(IL)                                         !! NEW COEFFICIENT !!
+      RNR=A81*YDWR(I,IL)+A82*YDWI(I,IL)-RKRT1(IL)*YDWR(I-1,IL)+R  !! First time that it uses YDWR/I !!
      1KIT1(IL)*YDWI(I-1,IL)
       RNI=A81*YDWI(I,IL)-A82*YDWR(I,IL)-RKRT1(IL)*YDWI(I-1,IL)-R
      1KIT1(IL)*YDWR(I-1,IL)
@@ -901,12 +911,16 @@ c chiamata subroutine coulomb(r-match)
       IL=IL+1
       A8=sin(SIGMA(LP1)-SIGMA(1))
       A9=cos(SIGMA(LP1)-SIGMA(1))
-      ALP1=RKRT1(IL)*YDWR(IC,IL)+RKIT1(IL)*YDWI(IC,IL)
-      BLP1=-RKRT1(IL)*YDWI(IC,IL)+RKIT1(IL)*YDWR(IC,IL)
-      CLP1=YDWR(IC,IL)**2+YDWI(IC,IL)**2
+      ALP1=RKRT1(IL)*YDWR(IC,IL)+RKIT1(IL)*YDWI(IC,IL)            !! A_l
+      BLP1=-RKRT1(IL)*YDWI(IC,IL)+RKIT1(IL)*YDWR(IC,IL)           !! B_l
+      CLP1=YDWR(IC,IL)**2+YDWI(IC,IL)**2                          !! C_l
 C------------------------------------------------------------------------------
 C      TAKE RATIOS TO EASE OVERFLOW PROBLEMS ON THE VAX
 C______________________________________________________________________________
+
+      !! Here it uses continued fractions algorithm (I guess...)
+      !! See article about RCWFN subroutine
+      !! Barnett et al.
       ALP1=ALP1/CLP1
       BLP1=BLP1/CLP1
       A2=ALP1*F(LP1)
@@ -949,7 +963,7 @@ c -----------------------------------
 c		output
 c -----------------------------------
 
-
+      !! HERE ARE CALCULATED THE DSIGMAS !!
       IF (IWRITE) 60,60,110
  110  IF(IWRITE-2)63,111,63
  60   WRITE (6,94) EPCM,RMU,RK,ETA
@@ -957,7 +971,8 @@ c -----------------------------------
  111  REACT=0.
       DO 62 LP1=1,LMAXP1
       L=LP1-1
-      REACT=REACT+(2*L+1)*(1.-SLP1R(LP1)**2-SLP1I(LP1)**2)
+      REACT=REACT+(2*L+1)*(1.-SLP1R(LP1)**2-SLP1I(LP1)**2)        !! dSigma reaction !!
+      !! sum_l (2l+1)*(1-|S_l|^2) -> S_l = eta_l
       RJ=L
  62   WRITE (6,96) L,RJ,SLP1R(LP1),SLP1I(LP1)
       REACT=REACT*10.*PI/RK**2
@@ -1079,17 +1094,18 @@ C      COULOMB WAVEFUNCTIONS CALCULATED AT R=RHO BY THE
 C      CONTINUED FRACTION METHOD OF STEED
 C      MINL,MAXL ARE ACTUAL L-VALUES
 C      SEE BARNETT, FENG, STEED, AND GOLDFARB COMPUTER PHYSICS COMM 1974
+       !! This paper is on Drive !!
 C______________________________________________________________________________
       PACE = STEP
       ACC = ACCUR
       IF(PACE.LT.100.) PACE = 100.
       IF(ACC.LT.1.E-15.OR.ACC.GT.1.E-6) ACC = 1.E-6
-      R    = RHO
+      R    = RHO                                      !! RHO = k*r = (2*mu*E)^(1/2)*r/h_bar -> mu = reduced mass
       KTR  = 1
       LMAX = MAXL
       LMIN1= MINL + 1
       XLL1 = DFLOAT(MINL*LMIN1)
-      ETA2 = ETA*ETA
+      ETA2 = ETA*ETA                                  !! ETA = mu*Z1*Z2*e^2/(hbar^2*k)
       TURN = ETA + sqrt(ETA2 + XLL1)
       IF(R.LT.TURN.AND.abs(ETA).GT.1.E-6) KTR = -1
       KTRP = KTR
@@ -1267,7 +1283,9 @@ C______________________________________________________________________________
       GO TO 8
       END
 
-
+      !! FB1DS2 is the depencence on Rx 
+      !!-> if Zp!=0 and Rx>Rc =>1/Rx (outside charged sphere)
+      !!                Rx<Rc =>C1+C2*Rx^2 (inside charged sphere with charge volume distrib.)
       FUNCTION F1BDS2 (ZP ,RCOULE,RX,RECRX,A5,A6)
       IMPLICIT real*8 (A-H,O-Z)
       IF(abs(ZP).GT.1.D-6)GO TO 2
