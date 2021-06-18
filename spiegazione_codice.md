@@ -74,7 +74,7 @@ Calcola i polinomi di Legendre con l tra 1 e 120.
 
 ## SUBROUTINE dstwav4 ([578-638](./src/antiprova.for#L578))
 
-## SUBROUTINE COULFN e RCWFN ([1037-1086](./src/antiprova.for#L1037) e [1088-1284](./src/antiprova.for#L1088)
+## SUBROUTINE COULFN e RCWFN ([1037-1086](./src/antiprova.for#L1037) e [1088-1284](./src/antiprova.for#L1088))
 
 Necessario prima queste di DSTWAV.
 
