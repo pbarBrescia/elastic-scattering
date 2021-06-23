@@ -67,9 +67,9 @@ c potential real and imaginary strength, radius/(A^1/3), diffuseness
       w0d = 0.d0 			      !! -> SURFACE TERM NOT PRESENT!
       r0r = 1.25d0			!! r0*A^1/3 = Nuclear radius 
       r0i = 1.25d0			!! (imaginary and real part of optical potential)
-      r0c = 1.2d0 			!! r0c*A^1/3 = Coulomb radius 
-      a0r = 0.6d0			      !! Diffusness (real)
-      a0i = 0.5d0			      !! Diffusness (imaginary)
+      r0c = 1.2d0 			!! r0c*A^1/3 = Coulomb radius 1.2
+      a0r = 0.6d0			      !! Diffusness (real) 0.6
+      a0i = 0.5d0			      !! Diffusness (imaginary) 0.5
 
 ccc END PARAMETERS
 
