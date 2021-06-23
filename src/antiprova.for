@@ -591,13 +591,13 @@ c dstwav in 1200 step.
       common/parametri/r0r,r0i,a0r,a0i,w0d,r0c,r0mt,z0t,r0mp
       common/elle/lm
 C
-      DATA PIMASS,PMASS,EMASS/.1498 ,1.007,0.0005486/
+      DATA PIMASS,PMASS,EMASS/.1498 ,1.007,0.0005486/ !! Masses of pion, proton and electron? They seems slightly different...
 C
 
       anfex = 1.d0
       ILC  = -1
       PI   =  4.d0*ATAN(anfex)
-      FM0  =  931.478
+      FM0  =  931.478                     !! ~ 1 u
       HXC  =  197.32
       ESQ  =  1.43986
 
@@ -622,7 +622,7 @@ c irdim puo` essere minore di maxstep
 
       CALL DSTWAV(uffr,uffi,u0,w0,0.,0.,r0r,r0i,1.,1.,a0r,a0i,
      *1.,1.,w0d,r0c,r0mt,z0t,r0mp,z0p,0.,h0,r0max,l0max,ilc,
-     *1,irdim,nonloc,bnldw,iwrite,lctoff,r0k,r0mu,0.,1.,1.)  
+     *1,irdim,nonloc,bnldw,iwrite,lctoff,r0k,r0mu,0.,1.,1.)  !! r0mu not declared?
 
       kd = 1
       do 521, k = 2,1201,1
@@ -687,14 +687,14 @@ c      rmu = rmp*convert;
 c      rk = rk*convert;
       rksq = rk*rk
 c      EPCM=EP*RMT/(RMT+RMP)
- 401  NRMAX=RMAX/H+0.5
-      RMAX=NRMAX*H
+ 401  NRMAX=RMAX/H+0.5                !! Max number of steps
+      RMAX=NRMAX*H                    !! Max radius
       RMTCH=RMAX-3.0*H 			  !! Matching R -> to find delta?
-      A1=2.*FM0*RMU/HXC**2
-      A12=ZP
-      RC=A11*ROC
-      RR=A11*ROR
-      RI=A11*ROI
+      A1=2.*FM0*RMU/HXC**2            !! 2*931.478*1.007(?)/h_bar^2
+      A12=ZP                          !! Projectile Charge (in electron unit)
+      RC=A11*ROC                      !! A^(1/3)*Coulomb radius
+      RR=A11*ROR                      !! A^(1/3)*Nuclear real-part radius 
+      RI=A11*ROI                      !! A^(1/3)*Nuclear img-part radius              
 cc remark: epcm is energy in MeV 
       epcm = rksq/a1
 c      RKSQ=A1*EPCM
@@ -703,12 +703,12 @@ c      RK=sqrt(RKSQ)
 
       HSQ=H*H
       HFO=HSQ*HSQ
-      ER=exp(DBLE(-H/AR))
-      EI=exp(DBLE(-H/AI))
-      FR=exp(  RR/AR)
-      FI=exp(  RI/AI)
-      GAMMA=ESQ*ZT*ZP/(2.*EPCM*RC)
-      RROCSQ=1.0/(RKSQ*RC*RC) 	   !! 1/(k^2*r^2)
+      ER=exp(DBLE(-H/AR))          !! e^(-step/a_r) -> Exponential for opt pot (real)
+      EI=exp(DBLE(-H/AI))          !! e^(-step/a_i) -> Exponential for opt pot (img)
+      FR=exp(  RR/AR)              !! e^(r_r/a_r) -> second exp for opt pot (real)
+      FI=exp(  RI/AI)              !! e^(r_i/a_i) -> second exp for opt pot (img)
+      GAMMA=ESQ*ZT*ZP/(2.*EPCM*RC) !! e^2*TargetCharge*ProjCharge/(2*Energy*Rcoul) -> CoulBarrier/Energy
+      RROCSQ=1.0/(RKSQ*RC*RC) 	   !! 1/(k^2*rc^2)
 
 c      print *,rk,epcm,rmp,rmt,convert
 
@@ -727,14 +727,14 @@ c ---------------------------------------
       IL=IL+1
       YDWR(1,IL)=0.0
  10   YDWI(1,IL)=0.0
-      DO 16 I=1,2 							!! What is I?
+      DO 16 I=1,2 							!! I = # of h -> I = 1,2 => 1h,2h
       ISQ=I*I
       IFO=ISQ*ISQ
       FR=FR*ER
       FI=FI*EI
       UC(I)=UO*FR/(EPCM*(1.0+FR))					!! Real potential normalized for energy
       WC(I)=(WO*FI/(1.0+FI)+4.0*WOD*FI/(1.0+FI)**2)/EPCM 	!! N.B: W0D = 0 !!
-      RKR(I)=1.0-3.0*GAMMA+UC(I) 					!! Coulomb part of potential (?)
+      RKR(I)=1.0-3.0*GAMMA+UC(I) 					!! relative wave number (coulomb+real)
       IL=0
       DO 16 LP1=LMINP1,LMAXP1 					!! LP1 = l (?)
       IL=IL+1
@@ -748,7 +748,7 @@ c ---------------------------------------
 
       !! These are constants/coefficients to add
       !! in the definitions of YDWR and YDWI.
-      !! My opinion: weight of spherical harmonics
+
       if (lp1.le.101) then
       	if (i.eq.1) then
       	  alfaspeed = 1.d0
@@ -777,10 +777,9 @@ c ---------------------------------------
       end if
 
       !! YDWR/YDWI
-      !! My opinion: spherical harmonics (first terms)
-      !! for real and imaginary parts
-      YDWR(I+1,IL)= alfaspeed*(1.d0+AR2*RKSQ*ISQ*HSQ+AR4*RKFO*IFO
-     1*HFO)
+      
+
+      YDWR(I+1,IL)= alfaspeed*(1.d0+AR2*RKSQ*ISQ*HSQ+AR4*RKFO*IFO*HFO)
  16   YDWI(I+1,IL)= alfaspeed*(AI2*RKSQ*ISQ*HSQ+AI4*RKFO*IFO*HFO)
       C1=1.5d0/RC
       C2=-0.5d0/(RC**3)
@@ -940,9 +939,9 @@ C______________________________________________________________________________
       DEN=1./(1.d0+XLP1**2)
       SLP1R(LP1)=-WLP1*(1.d0+XLP1*YLP1)*DEN
       SLP1I(LP1)=VLP1*(1.d0-XLP1/YLP1)*DEN
-      amplr(lp1) = slp1r(lp1)
-      ampli(lp1) = slp1i(lp1)
-      slpabs = sqrt(slp1r(lp1)**2+slp1i(lp1)**2)
+      amplr(lp1) = slp1r(lp1)                                     !! S_l (real)
+      ampli(lp1) = slp1i(lp1)                                     !! S_l (img)
+      slpabs = sqrt(slp1r(lp1)**2+slp1i(lp1)**2)                  !! |S_l|
 c      if (lp1.lt.11)  print *,'**',lp1,amplr(lp1),ampli(lp1)
       A1=F(LP1)+F(LP1)*SLP1R(LP1)+G(LP1)*SLP1I(LP1)
       A2=G(LP1)-G(LP1)*SLP1R(LP1)+F(LP1)*SLP1I(LP1)
