@@ -74,3 +74,19 @@ bash scripts/animated_gif.sh
 ```
 
 ![](animationMom.gif)
+
+## 2021 version
+
+In the new version of the code (files with "2021") the following features are introduced:
+1. Control of the parameters from text file (e.g., `param.dat`)
+1. 10 parameters in file requested: plab, A target, Z target and the parameters of optical potential (`u0`, `w0`, `r0r`, `r0i`, `r0c`, `a0r`, `a0i`)
+1. New script `execute.sh`: it execute compile and run scripts and then plot the results.
+
+For using `execute.sh`, do:
+
+```bash
+./execute.sh <input_file> <output_file>
+```
+
+- `<input_file>`: a text file containing the 10 parameters. If you insert a title line, please be sure to put a `#` before. Remember to insert a empty line below the parameters.
+- `<output_file>`: a text file in which is saved the table to do the plot in `plot.C`  
