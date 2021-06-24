@@ -50,9 +50,9 @@ int main(int argc, char* argv[]){
 
   double pmc = pbar_lab_p ;// old value: 50; //p in mev/c
   double zeta = target_charge ; // old value: 20.;
-  double mass = target_mass * 931.78; // old value: 40.078 , 931.78 = u.a.m.
+  double mass = target_mass * 931.494; // old value: 40.078 , 931.78 = u.a.m.
 
-  double ak = pmc/197.32; // k in 1/fm
+  double ak = pmc/197.33; // k in 1/fm, old value: 197.32
   //cm effects removed for coherence with the other program
   //  double mcorrection = (mass*1.)/(mass+1.);
   //double lambda = -6.85*zeta*mcorrection/pmc;
@@ -128,7 +128,7 @@ int main(int argc, char* argv[]){
 
     double dsigmatot = atotr*atotr + atoti*atoti;
 
-
+    if (theta>0)
     cout << theta*(180./M_PI) << " " << nucleartheta*(180./M_PI) 
 	 << " " << 10*dsigmanuclear << " " 
 	 << 10*dsigmaomega << " " << 10*dsigmatot << "\n";
