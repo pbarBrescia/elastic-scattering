@@ -1,7 +1,7 @@
       program antiproton
 c In questo programma e` stata riscritta
 c la sezione d'urto in termini di phase shift.
-
+ 
       implicit real*8 (a-h,o-z)
 c parametri della somma finale
       parameter(lsum=100)
@@ -25,28 +25,72 @@ c potrebbe usare in piu` routines
       common/egendre/ucost,pleg(130)
       common/scatt/amplr(125),ampli(125)
 
-
 ccc Start of the code added in 2021
       CHARACTER(100) :: num1char
       CHARACTER(100) :: num2char
       CHARACTER(100) :: num3char
-      REAL :: num1
-      REAL :: num2
-      REAL :: num3
-      IF(COMMAND_ARGUMENT_COUNT().NE.3)THEN
-      WRITE(*,*)'ERROR, 3 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
-      ! example ./antip 50.0 20.0 40.078
+   !! IF(COMMAND_ARGUMENT_COUNT().NE.3)THEN
+   !! WRITE(*,*)'ERROR, 3 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
+      ! example ./antip 50.0 40.078 20.0
+   !! STOP
+   !! ENDIF
+
+   !! CALL GET_COMMAND_ARGUMENT(1,num1char)  
+   !! CALL GET_COMMAND_ARGUMENT(2,num2char)
+   !! CALL GET_COMMAND_ARGUMENT(3,num2char)
+    
+   !! READ(num1char,*)num1     ! lab momentum MeV/c              
+   !! READ(num2char,*)num2     ! target mass
+   !! READ(num2char,*)num3     ! target charge
+
+!! Added in June 2021
+!! Values for opt pot from terminal
+      CHARACTER(100) :: numu0char
+      CHARACTER(100) :: numw0char
+      CHARACTER(100) :: numr0rchar
+      CHARACTER(100) :: numr0ichar
+      CHARACTER(100) :: numr0cchar
+      CHARACTER(100) :: numa0rchar
+      CHARACTER(100) :: numa0ichar
+      REAL*8 :: num1
+      REAL*8 :: num2
+      REAL*8 :: num3
+      REAL*8 :: numu0
+      REAL*8 :: numw0
+      REAL*8 :: numr0r
+      REAL*8 :: numr0i
+      REAL*8 :: numr0c
+      REAL*8 :: numa0r
+      REAL*8 :: numa0i
+      IF(COMMAND_ARGUMENT_COUNT().NE.10)THEN
+      WRITE(*,*)'ERROR, 10 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
+      !! example ./antip 50.0 40.078 20.0 30 150 1.25 1.25 1.2 0.6 0.5
+      !! This number will be taken by a text file
       STOP
       ENDIF
 
       CALL GET_COMMAND_ARGUMENT(1,num1char)  
       CALL GET_COMMAND_ARGUMENT(2,num2char)
       CALL GET_COMMAND_ARGUMENT(3,num3char)
+      CALL GET_COMMAND_ARGUMENT(4,numu0char)  
+      CALL GET_COMMAND_ARGUMENT(5,numw0char)
+      CALL GET_COMMAND_ARGUMENT(6,numr0rchar)
+      CALL GET_COMMAND_ARGUMENT(7,numr0ichar)  
+      CALL GET_COMMAND_ARGUMENT(8,numr0cchar)
+      CALL GET_COMMAND_ARGUMENT(9,numa0rchar)
+      CALL GET_COMMAND_ARGUMENT(10,numa0ichar)
       
 
       READ(num1char,*)num1     ! lab momentum MeV/c              
       READ(num2char,*)num2     ! target mass
       READ(num3char,*)num3     ! target charge
+      READ(numu0char,*)numu0       !! real strength opt pot MeV              
+      READ(numw0char,*)numw0       !! img strength opt pot MeV
+      READ(numr0rchar,*)numr0r     !! real nuclear radius/A^(1/3) fm
+      READ(numr0ichar,*)numr0i     !! img nuclear radius/A^(1/3) fm              
+      READ(numr0cchar,*)numr0c     !! Coulomb radius/A^(1/3) fm              
+      READ(numa0rchar,*)numa0r     !! real diffusness fm
+      READ(numa0ichar,*)numa0i     !! img diffusness fm
 
 ccc   End of the code added in 2021
 ccc KEY PARAMETERS ///////////////////////////////////
@@ -62,14 +106,14 @@ c lab momentum MeV/c (rescalable many times in do 7981, a few lines below)
       pmevc = num1 ! old value: 50.d0
 
 c potential real and imaginary strength, radius/(A^1/3), diffuseness  
-      u0 = 30.d0 			      !! 30 MeV
-      w0 = 150.d0 			!! 150 MeV
-      w0d = 0.d0 			      !! -> SURFACE TERM NOT PRESENT!
-      r0r = 1.25d0			!! r0*A^1/3 = Nuclear radius 
-      r0i = 1.25d0			!! (imaginary and real part of optical potential)
-      r0c = 1.2d0 			!! r0c*A^1/3 = Coulomb radius 1.2
-      a0r = 0.6d0			      !! Diffusness (real) 0.6
-      a0i = 0.5d0			      !! Diffusness (imaginary) 0.5
+      u0 = numu0 				!! old value: 30 MeV
+      w0 = numw0 				!! old value: 150 MeV
+      w0d = 0.d0 			!! old value: 0
+      r0r = numr0r			!! old value: 1.25 
+      r0i = numr0i			!! old value: 1.25
+      r0c = numr0c 			!! old value:1.2
+      a0r = numa0r			!! old value: 0.6
+      a0i = numa0i			!! old value: 0.5
 
 ccc END PARAMETERS
 
@@ -90,8 +134,8 @@ c momentum is converted into 1/fm
       sigmaint = 0.d0
 c      do 7345, icost = 100,-100,-1
 c      ucost = 1.d-2*icost
-      do 7345, ittt = 0,50,1
-         utheta = ittt*2.d-2*3.14159265               !! theta from 0 to pi ( step = (1/50)*pi )  
+      do 7345, ittt = 0,200,1
+         utheta = ittt*0.005*pi              !! theta from 0 to pi rad ( step = (1/50)*pi )  
          ucost = cos(utheta)
 c risoluzione delle equazioni radiali (in "onda")
       call dstwav4(onda,maxstep,u0,w0,z0p,akp)    
@@ -118,8 +162,9 @@ c      print *,esse,sigma,sigtot,opt
 ccc      print *,'       ',sigma,sigtot
       sigmaint = sigmaint+1.d-2*sigma*2.d0*pi
 ccc      print *,ucost,sigmaint
-
+	  !if(utheta.ne.0)then
       print *,utheta,dreal(esse),dimag(esse)
+      !endif
 7345  continue
 c fine do angoli
 
@@ -591,15 +636,15 @@ c dstwav in 1200 step.
       common/parametri/r0r,r0i,a0r,a0i,w0d,r0c,r0mt,z0t,r0mp
       common/elle/lm
 C
-      DATA PIMASS,PMASS,EMASS/.1498 ,1.007,0.0005486/ !! Masses of pion, proton and electron? They seems slightly different...
+      DATA PIMASS,PMASS,EMASS/.1498 ,1.00727,0.0005486/ !! Masses of pion, proton and electron in amu -> old value: 1.007
 C
 
       anfex = 1.d0
       ILC  = -1
       PI   =  4.d0*ATAN(anfex)
-      FM0  =  931.478                     !! ~ 1 u
-      HXC  =  197.32
-      ESQ  =  1.43986
+      FM0  =  931.494                    !! old value: 931.478 -> amu
+      HXC  =  197.33					 !! old value: 197.32
+      ESQ  =  1.4399764					 !! old value: 1.43986
 
 c nella chiamata della sbr tutte le "O" sono sost. da "0", 
 c e altri "0" sono aggiunti per distinguere le stesse variabili 
@@ -679,14 +724,14 @@ c ------------------------------------
  5    A11=RMT**(1./3.)
 cc falied attempt change 2018, earlier used target frame mass. 
 cc remark: rk is momentum in 1/fm
-c      convert = rmt/(rmp+rmt);
-c      RMU=RMT*RMP/(RMT+RMP)
-c      rk = rk*RMP/(RMT+RMP)
+      convert = rmt/(rmp+rmt);
+C      RMU=RMT*RMP/(RMT+RMP)         
+C      rk = rk*RMP/(RMT+RMP)
       rmu = rmp 
 c      rmu = rmp*convert;
 c      rk = rk*convert;
       rksq = rk*rk
-c      EPCM=EP*RMT/(RMT+RMP)
+c      EPCM=EP*RMT/(RMT+RMP)         
  401  NRMAX=RMAX/H+0.5                !! Max number of steps
       RMAX=NRMAX*H                    !! Max radius
       RMTCH=RMAX-3.0*H 			  !! Matching R -> to find delta?
@@ -699,16 +744,16 @@ cc remark: epcm is energy in MeV
       epcm = rksq/a1
 c      RKSQ=A1*EPCM
 c      RK=sqrt(RKSQ)
-      RKFO=RKSQ*RKSQ
+      RKFO=RKSQ*RKSQ                  !! INDIFFERENT
 
       HSQ=H*H
-      HFO=HSQ*HSQ
+      HFO=HSQ*HSQ                     !! INDIFFERENT
       ER=exp(DBLE(-H/AR))          !! e^(-step/a_r) -> Exponential for opt pot (real)
       EI=exp(DBLE(-H/AI))          !! e^(-step/a_i) -> Exponential for opt pot (img)
       FR=exp(  RR/AR)              !! e^(r_r/a_r) -> second exp for opt pot (real)
       FI=exp(  RI/AI)              !! e^(r_i/a_i) -> second exp for opt pot (img)
       GAMMA=ESQ*ZT*ZP/(2.*EPCM*RC) !! e^2*TargetCharge*ProjCharge/(2*Energy*Rcoul) -> CoulBarrier/Energy
-      RROCSQ=1.0/(RKSQ*RC*RC) 	   !! 1/(k^2*rc^2)
+      RROCSQ=1.0/(RKSQ*RC*RC) 	   !! 1/(k^2*rc^2) !! INDIFFERENT
 
 c      print *,rk,epcm,rmp,rmt,convert
 
@@ -779,20 +824,21 @@ c ---------------------------------------
       !! YDWR/YDWI
       
 
-      YDWR(I+1,IL)= alfaspeed*(1.d0+AR2*RKSQ*ISQ*HSQ+AR4*RKFO*IFO*HFO)
- 16   YDWI(I+1,IL)= alfaspeed*(AI2*RKSQ*ISQ*HSQ+AI4*RKFO*IFO*HFO)
-      C1=1.5d0/RC
-      C2=-0.5d0/(RC**3)
+      YDWR(I+1,IL)= alfaspeed*(1.d0+AR2*RKSQ*ISQ*HSQ+AR4*RKFO*IFO       !! INDIFFERENT
+     1*HFO)
+ 16   YDWI(I+1,IL)= alfaspeed*(AI2*RKSQ*ISQ*HSQ+AI4*RKFO*IFO*HFO)       !! INDIFFERENT
+      C1=1.5d0/RC                   !! INDIFFERENT
+      C2=-0.5d0/(RC**3)             !! INDIFFERENT
       COUL=ESQ*A1*ZT*ZP             !! COUL = 2m*e^2*Zp*Zt/h_bar^2
       A8=HSQ/12.d0
       DO 27 I=1,2
       RX(I)=I*H
-      RERX(I)=1.0/RX(I)
-      RERXSQ(I)=RERX(I)**2
-      UC(I)=RKSQ*UC(I)
-      WC(I)=RKSQ*WC(I)
-      C3=COUL*F1BDS2(A12,RC,RX(I),RERX(I),C1,C2)      !! SEE SUBROUTINE F1BDS2
-      RKR(I)=UC(I)+RKSQ-C3          !! TOTAL K (REAL PART) -> TOTAL ENERGY/(2M/H_BAR^2) !!
+      RERX(I)=1.0/RX(I)             !! INDIFFERENT
+      RERXSQ(I)=RERX(I)**2          !! INDIFFERENT
+      UC(I)=RKSQ*UC(I)              !! INDIFFERENT
+      WC(I)=RKSQ*WC(I)              !! INDIFFERENT
+      C3=COUL*F1BDS2(A12,RC,RX(I),RERX(I),C1,C2)      !! SEE SUBROUTINE F1BDS2      !! INDIFFERENT
+      RKR(I)=UC(I)+RKSQ-C3          !! TOTAL K (REAL PART) -> TOTAL ENERGY/(2M/H_BAR^2) !! !! INDIFFERENT
       IF (NONLOC) 19,18,18          !! NONLOC >0 <0 =0
  18   rextra(1,I+1)=UC(I)
       rextra(2,I+1)=WC(I)

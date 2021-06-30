@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+if [ ! -d results ]; then
+  mkdir results;
+fi
+
 if [[ $# -ne 2 ]]; then
 	echo "Please, provide 2 file as input: "
 	echo "./execute.sh <input_file> <output_file>"
@@ -8,8 +12,8 @@ if [[ $# -ne 2 ]]; then
 fi
 
 echo "Compiling the code..."
-./compile_2021.sh
+./compile.sh
 echo "Executing the code..."
-./run_2021.sh "$1" > "$2"
+./run.sh "$1" > "results/$2"
 echo "Plotting the results..."
-root -l 'plot.C("'"$2"'")'
+root -l 'plot.C("'"results/$2"'")'
