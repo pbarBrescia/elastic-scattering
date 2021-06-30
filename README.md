@@ -77,7 +77,7 @@ bash scripts/animated_gif.sh
 
 ## 2021 version
 
-In the new version of the code (files with "2021") the following features are introduced:
+In the new version of the code the following features are introduced:
 1. Control of the parameters from text file (e.g., `param.dat`)
 1. 10 parameters in file requested: plab, A target, Z target and the parameters of optical potential (`u0`, `w0`, `r0r`, `r0i`, `r0c`, `a0r`, `a0i`)
 1. New script `execute.sh`: it execute compile and run scripts and then plot the results.
