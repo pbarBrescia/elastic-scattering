@@ -1,10 +1,10 @@
       program antiproton
 c In questo programma e` stata riscritta
 c la sezione d'urto in termini di phase shift.
- 
+
       implicit real*8 (a-h,o-z)
 c parametri della somma finale
-      parameter(lsum=100)
+      parameter(lsum=120)
 c par. relativi alla dstwav
       parameter(lmax=125,maxstep=1201,mxstep = maxstep+2)
 c h e` lo step radiale elementare (h per maxstep-1 = raggio max).
@@ -117,6 +117,8 @@ c potential real and imaginary strength, radius/(A^1/3), diffuseness
 
 ccc END PARAMETERS
 
+      open(23,file='dwav.dat',status='old')
+
 c inizializzazione (in parte interattiva in parte no)
       call iniziale
       int = 1200
@@ -124,7 +126,7 @@ c inizializzazione (in parte interattiva in parte no)
       pi = 4.d0*atan(1.d0)
 
 c momentum is converted into 1/fm
-      pfm = pmevc/197.32
+      pfm = pmevc/197.327
 
       do 7981, iij=1,1
       aq = pfm*iij
@@ -134,8 +136,8 @@ c momentum is converted into 1/fm
       sigmaint = 0.d0
 c      do 7345, icost = 100,-100,-1
 c      ucost = 1.d-2*icost
-      do 7345, ittt = 0,200,1
-         utheta = ittt*0.005*pi              !! theta from 0 to pi rad ( step = (1/50)*pi )  
+      do 7345, ittt = 0,2000,1
+         utheta = ittt*0.0005*pi              !! theta from 0 to pi rad ( step = (1/2000)*pi )  
          ucost = cos(utheta)
 c risoluzione delle equazioni radiali (in "onda")
       call dstwav4(onda,maxstep,u0,w0,z0p,akp)    
@@ -153,7 +155,7 @@ c      print *,i,amplr(i),ampli(i)
 c fine do L 
       esse = cmplx(esser,essei)
 c questa è l'ampiezza che al quadrato da la sigma diff senza coefficienti
-      esse = -esse*eye*0.5d0/akp
+      esse = esse*eye*0.5d0/akp
 c sigma è la sez diff in fm2/sr
       sigma = abs(esse)**2
       sigtot = sig*pi/akp**2
@@ -168,79 +170,9 @@ ccc      print *,ucost,sigmaint
 7345  continue
 c fine do angoli
 
-ccc      print *,sigmaint
-cc      aqh = aq*h
-cc      akh = akp*h
-c      print *,aqh,akh
-
-ccc ricorda che la versione originaria prevedeva di usare dstwav per calcolare 
-ccc un integrale di overlap di tipo DWBA. Questo venia svolto nelle righe 
-ccc seguenti, cancellate perchè evidentemente per il pbar-A bastava il calcolo 
-ccc dei phase shift. 
-
-c calcolo delle due bessel di ordine piu` basso (bessel0 e bessel1)
-cc      call bessel5(maxstep,akh,aqh,bessel0,bessel1)
-c      print *,'ak,aq:',akp,aq
-c la seguente subr calcola tutte le bessel ed in "onda" sostituisce le 
-c funzioni radiali con le differenze "funzione-bessel"
-cc      call bessel7(lmax,maxstep,mxstep,efe,bessel0,bessel1,onda,
-cc     *akp,aq,h)
-
-c ciclo inteso a calcolare gli integrali radiali per ogni l (risultato 
-c in ege(ll,k) con k = real*8e o immag.)
-cc      pi = 4.d0*atan(1.d0)
-cc      do 110, ll=1,lmax
-cc      do 111, nn=1,maxstep
-cc      xrea = (nn-1)*h
-cc      do 111, ii=1,2
-cc      efe(nn,ii) = onda(nn,ll,ii)
-cc      efe(nn,ii) = efe(nn,ii)*xrea
-cc111   continue
-cc      nct = 1
-cc      call integrale(efe,rr,h,nct,maxstep,mxstep,int,resultr)
-cc      ege(ll,1) = resultr
-cc      nct = 2
-cc      call integrale(efe,rr,h,nct,maxstep,mxstep,int,resulti)      
-cc      ege(ll,2) = resulti
-cc110   continue
-c somma degli integrali radiali
-cc      call somma(lmax,maxstep,mxstep,ege,onda,
-cc     *akp,aq,h,bsum1,bsum2)
-cc      bsum1 = bsum1*4.d0*pi/akp
-cc      bsum2 = bsum2*4.d0*pi/akp
-c nel seguito si calcola la planewave
-cc      call funzione(efe,ucost,h,akp,aq,mxstep,aqp)
-c      print *,'aqp',aqp
-c      aa = 1.1*(12.)**0.3333333333333
-c      echeck = exp(-(aa*aqp)**2/2.d0)
-cc      nct = 3
-cc      call integrale(efe,rr,h,nct,maxstep,mxstep,int,resulth)
-c ora si sommano i contributi planewave e distwave
-cc      resultm = resulth+bsum1
-c      checkb = bsum1/resulth
-c      print *,checkb
-c      check = bsum1/echeck
-c      print *,'check',check
-cc      sqmod = (resultm*resultm)+(bsum2*bsum2)
-c       sqpw = resulth**2
-cc      print *,sqmod
-c      print *,'integrali real*8i: dwr,dwi,dwr-pw,pw'
-c      print *,resultm,bsum2,bsum1,resulth
-c      print *,'square modulus (total) =',sqmod 
-c      print *,'square modulus PWIA =',sqpw
-
-c end do sui missing momenta
 7981   continue
 
       stop
-      end
-
-      subroutine gamma
-      implicit real*8 (a-g,o-z)
-      implicit complex*16 (h-h)
-
-
-      return
       end
 
       subroutine iniziale
@@ -252,42 +184,6 @@ c      open(25,file='snbound.dat',status='old')
 
       lm = 120
       
-c inizializzazione di una serie di parametri relativi ai potenziali
-c      r0r = 1.25d0
-c      r0i = 1.25d0
-c      a0r = 0.6d0
-c      a0i = 0.5d0
-c      w0d = 0.d0
-c      r0c = 1.2d0
-c      r0mt = 40.d0
-c      z0t = 20.d0
-c      r0mp = pmass
-
-c gestione interattiva dei parametri liberi
-c      print *,'give U0,(return),W0,(return),Qp'
-c      read *,u0
-c      read *,w0
-c      read *,z0p
-c      u0 = 50.d0
-c      w0 = 150.d0
-c      z0p = 0.d0
-c      print *,'give nstep int. (max 1200)'
-c      read *,int
-c      int = 1200
-c      print *,'give thetaP (in unit of pi)'
-c      read *,ut
-c      ut = ut*(4.d0)*atan(1.d0)
-c      print *,'dare Ep(MeV) tenendo conto che:'
-c      print *,'k(1/f) = (circa) 0.22 x [E(MeV) x mp(u.m.a.)]^(1/2)'
-c      print *,'Ep = 23.44906998 da` k=1/f'
-c      print *,'Ep = 2344.907 da` k = 10/f'
-c      read *,e0p
-
-c assegnazione pm long e trasv.
-c      read *,aklon
-c      read *,aktr
- 
-ccc il contenuto di bind non sembra avere effetto
       do 525, i=0,599
       il = 5*i
 c      read(25,*)bind(il+1),bind(il+2),bind(il+3),bind(il+4),bind(il+5) 
@@ -302,109 +198,10 @@ c      read(25,*)bind(il+1),bind(il+2),bind(il+3),bind(il+4),bind(il+5)
 
 c      do 625, i=1,3001
 c      print *,bind(i),i
-c625   continue
+625   continue
 
       return
       end
-
-      !! NOT CALLED IN THIS CASE! !!
-      subroutine integrale(fb,r,dr,nc,nstp1,nstp3,int,result)
-
-c     ex programma 13d11.for
-      implicit real*8 (a-h,o-z)
-      dimension r(nstp3),fb(nstp3,3)
-      pi = 4.d0*atan(1.d0)
-
-      int1 = int+1
-      int2 = int+2
-      int3 = int+3
-      nstp2=nstp1+1
-      nstp0=nstp1-1 
-
-      do 777, k=nstp2,3,-1
-      fb(k,nc) = fb(k-1,nc)
-      r(k) = (k-2)*dr
-777   continue
-      r(2) = 0.d0
-      r(1) = -r(3)
-      r(nstp3) = nstp1*dr
-      fb(1,nc) = fb(3,nc)      
-      fb(2,nc) = 0.d0
-
-      do 778, ki=1,nstp3
-      fb(ki,nc) = fb(ki,nc)*s0(r(ki))
-778   continue
-      fb(nstp3,nc) = 2.d0*fb(nstp2,nc)-fb(nstp1,nc)        	
-
-c coefficienti di integrazione
-      b = (1.d0)/(2.4d1)
-      c = (1.3d1)/(2.4d1)
-      cb = -b+c
-      c2b = 2.d0*c-b
-      sum = 0.d0
-
-      do 503, kl=4,int
-      sum = sum+fb(kl,nc)
-503   continue
-      sum = sum*2.*cb
-      sum = sum-b*(fb(1,nc)+fb(int3,nc))+cb*(fb(2,nc)+fb(int2,nc))
-     *+c2b*(fb(3,nc)+fb(int1,nc))
-      sum = sum*dr
-      result = sum
-
-207   format(1x,4e10.2)
-
-      return
-      end
-
-      real*8 function s0(r)
-      implicit real*8(a-h,o-z)
-      parameter(rbound=30.d0,nbound=3000)
-      common/wave/bind(3002)
-      h1 = rbound/nbound
-      pi = 4.d0*atan(1.d0)
-c onda tipo atomo idrogenoide
-c      a = 2.d0
-c      a = (1.3d0)*((16.d0)**0.3333333333)
-c      s0 = exp(-r/a)/sqrt(a*a*a*pi)
-c      s0 = s0*(sqrt(8.d0))
-c      s0 = s0/((2.*pi)**3)
-c onda tipo oscillatore armonico
-c      a = 1.1*(12.)**0.3333333333333
-c      s0 = (2.d0/(pi**0.25*a**1.5))
-c      s0 = s0*exp(-(r/a)**2/2.d0)
-c onda wood-saxon s interpolata
-      au = r/h1
-      nau = au
-      rau = nau*h1
-      dau = r-rau
-      ds = (bind(nau+2)-bind(nau+1))/h1
-      s0 = bind(nau+1)+dau*ds
-
-      return
-      end
-
-      !! NOT CALLED IN THIS CASE! !!
-      subroutine funzione(efe,ucost,h,ak,aq,mstep,aqp)   
-
-      implicit real*8(a-h,o-z)
-      dimension efe(mstep,3)
-
-      pi4 = (16.d0)*atan(1.d0)
-      spi4 = pi4
-      aqp = sqrt(ak*ak+aq*aq-(2.d0)*aq*ak*ucost)
-      do 587, il=1,mstep
-      r = (il-1)*h
-      if (aqp.gt.(1.d-6)) then
-      efe(il,3) = r*sin(r*aqp)/aqp
-      else
-      efe(il,3) = r*r
-      end if
-      efe(il,3) = efe(il,3)*spi4
-587   continue
-      return
-      end
-
 
       subroutine legendre
 
@@ -429,196 +226,6 @@ c calcolo polinomi di legendre in cos(u)
       return
       end
 
-      !! NOT CALLED IN THIS CASE! !!
-      subroutine bessel5(maxstep,akh,aqh,bsl0,bsl1)
-
-c calcola le due funzioni di indice piu` basso che compaiono nello 
-c sviluppo in armoniche sferiche di exp(ikz) a pg. 510 del Davidov, 
-c dove sono indicate come j_0 e j_1. Nel par. 35 del Davidov c'e` la 
-c relazione tra queste funzioni e le Bessel a indice semintero 
-c J_(1/2) e J_(3/2). Sia le funzioni usate da Davidov che le Bessel 
-c verificano la stessa relazione di ricorrenza
-
-      implicit real*8 (a-h,o-z)
-      dimension af(33),bsl0(maxstep,2),bsl1(maxstep,2)
-
-c calcolo dei fattoriali
-      ak = 1.d0
-      do 511, k=1,33
-      ak = ak*k
-      af(k) = ak
-511   continue
-
-
-c per x < 6 lo sviluppo in serie e l'espressione analitica coincidono
-c entro dodici cifre sia in errore assoluto che relativo. L'espressione
-c analitica (Davidov par. 35) porta a singolarita` in x=0 (es. senx/x)
-c Quindi utilizzo lo sviluppo in serie fino ad x=5, oltre il quale 
-c il calcolo diretto dovrebbe essere piu` efficace. Lo sviluppo in serie
-c viene eseguito fino al primo termine piu` piccolo di err incluso.
-
-      do 510, im = 1,2
-      do 513, ik=1,maxstep
-      if (im.eq.1) then
-      x = (ik-1)*akh
-      else
-      x = (ik-1)*aqh
-      end if
-      if (x.lt.5) then
-      err = 1.e-12      
-      sum0 = 1.d0
-      sum1 = 0.d0
-      b = 1.d0
-      esum = 1.d0
-      esum1 = 1.d0
-      do 512, k=1,16
-      	a = (-1.)**k
-      	a1 = -2*k*a
-      	b1 = b*x 
-     	b = x**(2*k)
-      	c = af(2*k+1)
-      	alpha = abs(esum)
-      	if (alpha.lt.err) goto 111
-      	esum = a*b/c
-      	sum0 = sum0+esum
-111   	beta = abs(esum1)
-      	if (beta.lt.err) goto 112
-      	esum1 = a1*b1/c
-      	sum1 = sum1+esum1
-112     if ((alpha.lt.err).and.(beta.lt.err)) goto 113
-512   continue
-113   continue
-      bsl0(ik,im) = sum0
-      bsl1(ik,im) = sum1
-
-      else
-
-      bsl0(ik,im) = sin(x)/x
-      bsl1(ik,im) = (bsl0(ik,im)-cos(x))/x
-
-      end if
-513   continue
-510   continue
-
-c      print *,'*'
-c      do 741, iii=1,100
-c      print *,bsl0(iii,1),bsl0(iii,2)
-c      print *,bsl1(iii,1),bsl1(iii,2)
-c741   continue
-
-201   format(1x,3(e20.12))
-
-      return
-      end
-
-
-      !! NOT CALLED IN THIS CASE! !!
-      subroutine bessel7(lmax,maxstep,nstp3,effe,bsl0,bsl1,dwav,
-     *akp,akq,h)
-      implicit real*8 (a-h,o-z)
-      parameter (lpmax=500)
-      dimension bsl(lpmax,2)
-      dimension dwav(maxstep,lmax,2),bsl0(maxstep,2),bsl1(maxstep,2)
-      dimension effe(nstp3,2)
-c      open (16,file='ciclo12b.dat',status='new')
-
-c vorrebbe generare le bessel in un dato punto x partendo dal metodo 
-c di miller decrescente (vd Abramowitz pg 452 e commenti al 
-c bessel6.for). Ex programma bessel7.for, uno dei ciclo.for
-
-      lll = 120
-      pi = 4.d0*atan(1.d0)
-      big = 1.d5
-      akh = akp*h
-      aqh = akq*h
-
-      do 500, n=1,maxstep
-      xrea = (n-1)*h
-
-      do 501, im = 1,2
-      if (im.eq.1) then
-        x = (n-1)*akh
-      else 
-        x = (n-1)*aqh
-      end if
-      if (x.lt.(1.d-10)) then
-      	bsl(1,im) = 1.
-      	do 514, lp1 = 2,lpmax
-514   	bsl(lp1,im) = 0.
-      	goto 520
-      end if
-      bnm1 = 1.d0
-      bn = 0.d0
-
-      do 516, lp1=lpmax,1,-1
-      	l = lp1-1
-      	bnp1 = bn
-      	bn = bnm1
-        bnm1 = (2*l+1)*bn/x-bnp1
-        bsl(lp1,im) = bn
-      	if (abs(bsl(lp1,im)).gt.big) then
-      	  do 517, i=lp1,lpmax
-517       bsl(i,im)=bsl(i,im)/big
-      	  bnm1 = bnm1/big
-      	  bn = bn/big
-        end if
-516   continue
-
-      a = abs(bsl0(n,im))
-      b = abs(bsl(1,im))
-      if ((a.gt.(1.e-5)).and.(b.gt.(1.e-5))) then
-      	do 518, lp1=2,lpmax
-518   	bsl(lp1,im) = bsl(lp1,im)*bsl0(n,im)/bsl(1,im)
-      	bsl(1,im) = bsl0(n,im)
-      else
-      	do 519, lp1=3,lpmax
-519     bsl(lp1,im) = bsl(lp1,im)*bsl1(n,im)/bsl(2,im)
-      	bsl(2,im) = bsl1(n,im)
-      	bsl(1,im) = bsl0(n,im)
-      end if
-520   continue      
-501   continue
-c fine loop in im (= tipo funzione) 
-
-      do 521, i=1,lll,1
-c due possibilita`:
-c DW-PW (parte real*8e, la parte imm. e` uguale nei due casi)
-      dwav(n,i,1) = (dwav(n,i,1)-
-     *xrea*akp*bsl(i,1))*bsl(i,2)
-c DW normale
-c      asta = dwav(n,i,1)*bsl(i,2)
-c      dwav(n,i,1) = asta
-      dwav(n,i,2) = -dwav(n,i,2)*bsl(i,2)
-521   continue
-500   continue
-
-201   format(1x,3(e20.12))
-202   format(1x,e20.12,i3)
-203   format(1x,2(e20.12),e12.4)
-
-      return
-      end
-
-      !! NOT CALLED IN THIS CASE! !!
-      subroutine somma(lmax,maxstep,nstp3,effe,dwav,
-     *akp,akq,h,sum1,sum2)
-      implicit real*8 (a-h,o-z)
-      dimension dwav(maxstep,lmax,2)
-      dimension effe(lmax,2)
-      common/egendre/ucost,pleg(130)
-
-      lll = 120
-      pi = 4.d0*atan(1.d0)
-      sum1 = 0.d0
-      sum2 = 0.d0
-      do 591, j=1,lll
-      sum1 = sum1+(2*j-1)*effe(j,1)*pleg(j)
-      sum2 = sum2+(2*j-1)*effe(j,2)*pleg(j)
- 591   continue
-
-      return
-      end
-
 
       subroutine dstwav4(dwav,max,u0,w0,z0p,r0k)
 
@@ -636,14 +243,14 @@ c dstwav in 1200 step.
       common/parametri/r0r,r0i,a0r,a0i,w0d,r0c,r0mt,z0t,r0mp
       common/elle/lm
 C
-      DATA PIMASS,PMASS,EMASS/.1498 ,1.00727,0.0005486/ !! Masses of pion, proton and electron in amu -> old value: 1.007
+      DATA PIMASS,PMASS,EMASS/.1498 ,1.00727647,0.00054858/ !! Masses of pion, proton and electron in amu -> old value: 1.007
 C
 
       anfex = 1.d0
-      ILC  = -1
+      ILC  =  -1
       PI   =  4.d0*ATAN(anfex)
       FM0  =  931.494                    !! old value: 931.478 -> amu
-      HXC  =  197.33					 !! old value: 197.32
+      HXC  =  197.327					 !! old value: 197.32
       ESQ  =  1.4399764					 !! old value: 1.43986
 
 c nella chiamata della sbr tutte le "O" sono sost. da "0", 
@@ -651,6 +258,7 @@ c e altri "0" sono aggiunti per distinguere le stesse variabili
 c nel programma principale e nella sbr
 
       r0mp = pmass
+      r0mu = num2*pmass/(num2+pmass)
       l0max = lm+1
       r0max = 30.d0
       irdim = maxstep
@@ -658,16 +266,16 @@ c nel programma principale e nella sbr
       nonloc = 0
       bnldw = 0.d0
       iwrite = 1
-      lctoff = l0max     
+      lctoff = l0max    
 
 c iwrite = 1 annulla l'output
 c irdim puo` essere minore di maxstep
 
 
 
-      CALL DSTWAV(uffr,uffi,u0,w0,0.,0.,r0r,r0i,1.,1.,a0r,a0i,
-     *1.,1.,w0d,r0c,r0mt,z0t,r0mp,z0p,0.,h0,r0max,l0max,ilc,
-     *1,irdim,nonloc,bnldw,iwrite,lctoff,r0k,r0mu,0.,1.,1.)  !! r0mu not declared?
+      CALL DSTWAV(uffr,uffi,u0,w0,0.d0,0.d0,r0r,r0i,1.d0,1.d0,a0r,a0i,
+     *1.d0,1.d0,w0d,r0c,r0mt,z0t,r0mp,z0p,0.d0,h0,r0max,l0max,ilc,
+     *1,irdim,nonloc,bnldw,iwrite,lctoff,r0k,r0mu,0.d0,1.d0,1.d0)  !! r0mu not declared?
 
       kd = 1
       do 521, k = 2,1201,1
@@ -724,11 +332,11 @@ c ------------------------------------
  5    A11=RMT**(1./3.)
 cc falied attempt change 2018, earlier used target frame mass. 
 cc remark: rk is momentum in 1/fm
-      convert = rmt/(rmp+rmt);
-C      RMU=RMT*RMP/(RMT+RMP)         
+c      convert = rmt/(rmp+rmt);
+c      RMU=RMT*RMP/(RMT+RMP)         
 C      rk = rk*RMP/(RMT+RMP)
-      rmu = rmp 
-c      rmu = rmp*convert;
+c      rmu = rmp 
+c      rmu = rmp*convert
 c      rk = rk*convert;
       rksq = rk*rk
 c      EPCM=EP*RMT/(RMT+RMP)         
@@ -752,7 +360,7 @@ c      RK=sqrt(RKSQ)
       EI=exp(DBLE(-H/AI))          !! e^(-step/a_i) -> Exponential for opt pot (img)
       FR=exp(  RR/AR)              !! e^(r_r/a_r) -> second exp for opt pot (real)
       FI=exp(  RI/AI)              !! e^(r_i/a_i) -> second exp for opt pot (img)
-      GAMMA=ESQ*ZT*ZP/(2.*EPCM*RC) !! e^2*TargetCharge*ProjCharge/(2*Energy*Rcoul) -> CoulBarrier/Energy
+      GAMMA=ESQ*ZT*ZP/(2.d0*EPCM*RC) !! e^2*TargetCharge*ProjCharge/(2*Energy*Rcoul) -> CoulBarrier/Energy
       RROCSQ=1.0/(RKSQ*RC*RC) 	   !! 1/(k^2*rc^2) !! INDIFFERENT
 
 c      print *,rk,epcm,rmp,rmt,convert
@@ -779,7 +387,8 @@ c ---------------------------------------
       FI=FI*EI
       UC(I)=UO*FR/(EPCM*(1.0+FR))					!! Real potential normalized for energy
       WC(I)=(WO*FI/(1.0+FI)+4.0*WOD*FI/(1.0+FI)**2)/EPCM 	!! N.B: W0D = 0 !!
-      RKR(I)=1.0-3.0*GAMMA+UC(I) 					!! relative wave number (coulomb+real)
+      RKR(I)=1.d0-3.d0*GAMMA+UC(I) 					!! relative wave number (coulomb+real)
+!!      write(23,*)gamma,uc(i),rkr(i)
       IL=0
       DO 16 LP1=LMINP1,LMAXP1 					!! LP1 = l (?)
       IL=IL+1
@@ -839,7 +448,7 @@ c ---------------------------------------
       WC(I)=RKSQ*WC(I)              !! INDIFFERENT
       C3=COUL*F1BDS2(A12,RC,RX(I),RERX(I),C1,C2)      !! SEE SUBROUTINE F1BDS2      !! INDIFFERENT
       RKR(I)=UC(I)+RKSQ-C3          !! TOTAL K (REAL PART) -> TOTAL ENERGY/(2M/H_BAR^2) !! !! INDIFFERENT
-      IF (NONLOC) 19,18,18          !! NONLOC >0 <0 =0
+      IF (NONLOC) 19,18,18          !! NONLOC <0 =0 >0
  18   rextra(1,I+1)=UC(I)
       rextra(2,I+1)=WC(I)
       rextra(3,I+1)=C3
@@ -848,7 +457,7 @@ c ---------------------------------------
       DO 27 LP1=LMINP1,LMAXP1
       IL=IL+1
       L=LP1-1
-      A10=L*LP1*RERXSQ(I)           !! l(l-1)/Rx^2
+      A10=L*LP1*RERXSQ(I)           !! l(l+1)/Rx^2
       GO TO (24,25),I
  24   RKRT1(IL)=1.d0+A8*(RKR(1)-A10)
       RKIT1(IL)=A8*WC(1)
@@ -950,6 +559,7 @@ c chiamata subroutine coulomb(r-match)
  43   CALL COULFN (F,FD,G,GD,SIGMA,ETA,RK,RMTCH,LCTOFF,IWRITE)
       GO TO 46
  45   CALL COULFN (F,FD,G,GD,SIGMA,ETA,RK,RMTCH,LMAX,IWRITE)
+
  46   IL=0
       DO 49 LP1=LMINP1,LMAXP1
       L=LP1-1
@@ -987,6 +597,7 @@ C______________________________________________________________________________
       SLP1I(LP1)=VLP1*(1.d0-XLP1/YLP1)*DEN
       amplr(lp1) = slp1r(lp1)                                     !! S_l (real)
       ampli(lp1) = slp1i(lp1)                                     !! S_l (img)
+      !!write(23,*) lp1,slp1r(lp1),slp1i(lp1)
       slpabs = sqrt(slp1r(lp1)**2+slp1i(lp1)**2)                  !! |S_l|
 c      if (lp1.lt.11)  print *,'**',lp1,amplr(lp1),ampli(lp1)
       A1=F(LP1)+F(LP1)*SLP1R(LP1)+G(LP1)*SLP1I(LP1)
@@ -1017,10 +628,12 @@ c -----------------------------------
       DO 62 LP1=1,LMAXP1
       L=LP1-1
       REACT=REACT+(2*L+1)*(1.-SLP1R(LP1)**2-SLP1I(LP1)**2)        !! dSigma reaction !!
-      !! sum_l (2l+1)*(1-|S_l|^2) -> S_l = eta_l
+      elast=elast+(2*l+1)*((1-slp1r(lp1))**2+slp1i(lp1)**2)        !! dSigma elastic !!
       RJ=L
- 62   WRITE (6,96) L,RJ,SLP1R(LP1),SLP1I(LP1)
-      REACT=REACT*10.*PI/RK**2
+cc62   WRITE (6,96) L,RJ,SLP1R(LP1),SLP1I(LP1)
+62    REACT=REACT*10.*PI/RK**2
+      elast=elast*10.*PI/RK**2
+      write(23,*)elast,react
       WRITE (6,97) REACT
  63   IF (NONLOC) 72,64,64
  64   A6=0.125*BNLDW**2

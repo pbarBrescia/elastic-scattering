@@ -20,6 +20,52 @@
 
 using namespace std;
 
+complex<double> drop_imag(complex<double> z)
+{
+  double epsilon = 1e-07;
+
+  if (abs(imag(z)) <= epsilon) z = real(z);
+
+  return z;
+}
+
+
+// gamma function with Lanczos approximation
+// re-adapting the python implementation: 
+// https://en.wikipedia.org/wiki/Lanczos_approximation
+complex<double> gamma(complex<double> z)
+{
+   vector<double> p {676.5203681218851
+    ,-1259.1392167224028
+    ,771.32342877765313
+    ,-176.61502916214059
+    ,12.507343278686905
+    ,-0.13857109526572012
+    ,9.9843695780195716e-6
+    ,1.5056327351493116e-7};
+
+  complex <double> eye  (0.,1.);
+  complex <double> uno  (1.,0.);
+  complex<double> y,x,t;
+  if (real(z) < 0.5)
+  {
+    y = M_PI/(sin(M_PI*z)*gamma(uno-z));
+  }
+  else
+  {
+    z -= 1;
+    x = 0.99999999999980993;
+    for (int i=0; i < p.size(); i++)
+    {
+      complex<double> j (i,0);
+      x += p.at(i) / (z + j + uno);
+    }
+    t = z + (complex<double>)p.size() - 0.5;
+    y = sqrt(2 * M_PI) * pow(t,(z + 0.5)) * exp(-t) * x;
+    return drop_imag(y);
+  }
+}
+
 int main(int argc, char* argv[]){
 
 
@@ -49,7 +95,7 @@ int main(int argc, char* argv[]){
   double pmc = pbar_lab_p ;// old value: 50; //p in mev/c
   double zeta = target_charge ; // old value: 20.;
   double mass = target_mass * 931.494; // old value: 40.078 , 931.78 = u.a.m.
-  double ak = pmc/197.33; // k in 1/fm, old value: 197.32
+  double ak = pmc/197.327; // k in 1/fm, old value: 197.32
   //cm effects removed for coherence with the other program
   //  double mcorrection = (mass*1.)/(mass+1.);
   //double lambda = -6.85*zeta*mcorrection/pmc;
@@ -57,45 +103,25 @@ int main(int argc, char* argv[]){
   double esq = 1.4399764; // MeV*fm
   double hxc = 197.327; // MeV*fm
   //double lambda = -6.85*zeta/pmc;
-  double lambda = - esq*mu*zeta/(hxc*pmc);
+  double lambda = -esq*mu*zeta/(hxc*pmc);
 
   //cout << lambda << " lambda\n";
 
   double Rz = 1;
   double Iz = lambda;
 
-  int N1 = 200, N2 = N1/5;
-  double du = 20./N1;
-
-  double Rsum = 0, Isum = 0;
-  for (int i=-N1; i< N2; i++){
-    double u = i*du;
-    double ef = 0;
-    if (u < 4) {
-      double aarg = u*Rz - exp(u);
-      ef = exp(aarg);
-    }
-    else {
-      ef = 0;
-    }
-    double RRef = cos(Iz)*ef;
-    double IIef = sin(Iz)*ef;
-    Rsum += (RRef*du);
-    Isum += (IIef*du);
-    //cout << i << " " << u << " " << ef << " " << Rsum << " " << Isum << " "  
-    // << exp(u) << "\n";
-  }
+  complex<double> z (Rz,Iz);
 
   complex <double> eye  (0.,1.);
   complex <double> uno  (1.,0.);
   
-  complex<double> amplitude1 (Rsum,Isum);  
-  complex<double> amplitude2 = conj(amplitude1);
+  complex<double> amplitude1 = gamma(z);  
+  complex<double> amplitude2 = gamma(conj(z));
   complex<double> amplitude3 = amplitude1/amplitude2;
  
-  cout << amplitude1 << " " << amplitude2 << " " << amplitude3 << "\n";
+  //cout << amplitude1 << " " << amplitude2 << " " << amplitude3 << "\n";
 
-  int nstep = 200;
+  int nstep = 2000;
   double step = (double) 1./nstep;
 
   for (int itheta = 0; itheta<nstep; itheta++){
@@ -106,7 +132,7 @@ int main(int argc, char* argv[]){
     double sin122 = sin12*sin12;
     double lsin12 = log(sin12);
 
-    double earg = -2.*lambda*lsin12;
+    double earg = 0.;//-2.*lambda*lsin12;
     complex <double> cearg = eye*earg;
     complex <double> cesp = exp(cearg);
 
@@ -133,8 +159,9 @@ int main(int argc, char* argv[]){
 
     if (theta>0)
     cout << theta*(180./M_PI) << " " << nucleartheta*(180./M_PI) 
-	 << " " << 10*dsigmanuclear << " " 
-	 << 10*dsigmaomega << " " << 10*dsigmatot << "\n";
+	 << " " << 10.*dsigmanuclear << " " 
+	 << 10.*dsigmaomega << " " << 10.*dsigmatot << "\n";
+	 //<< atoti*atoti/imag(amplitude*amplitude) << " " << 10*dsigmatot << "\n";
    // 10* -> conversion to millibarn
   }
 
