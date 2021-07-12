@@ -128,11 +128,11 @@ int main(int argc, char* argv[]){
 
     double theta = (itheta)*step*M_PI;
 
-    double sin12 = sin(theta/2);
+    double sin12 = sin(theta/2.0);
     double sin122 = sin12*sin12;
     double lsin12 = log(sin12);
 
-    double earg = 0.;//-2.*lambda*lsin12;
+    double earg = -2.*lambda*lsin12;
     complex <double> cearg = eye*earg;
     complex <double> cesp = exp(cearg);
 
@@ -140,15 +140,15 @@ int main(int argc, char* argv[]){
     //  << cearg << " " << abs(cesp)<< " " << abs(amplitude3) << "\n";
 
     //coulomb amplitude
-    complex <double> amplitude = (amplitude3 * cesp * (0.5*lambda/ak) )/ sin122;
+    complex <double> amplitude = -(amplitude3 * cesp * (0.5*lambda/ak) )/ sin122;
 
     double aaa = abs(amplitude);
 
     //coulomb differential sigma (fm^2/sr)
     double dsigmaomega = aaa*aaa;
 
-    double nucleartheta=0, rnuclear=0, inuclear=0;
-    in1 >> nucleartheta >> rnuclear >> inuclear;
+    double nucleartheta=0, rnuclear=0, inuclear=0, rtot=0, itot=0;
+    in1 >> nucleartheta >> rnuclear >> inuclear >> rtot >> itot;
 
     double dsigmanuclear = rnuclear*rnuclear + inuclear*inuclear;
 

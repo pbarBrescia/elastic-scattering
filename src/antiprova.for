@@ -2,7 +2,7 @@
 c In questo programma e` stata riscritta
 c la sezione d'urto in termini di phase shift.
 
-      implicit real*8 (a-h,o-z)
+      implicit double precision (a-h,o-z)
 c parametri della somma finale
       parameter(lsum=120)
 c par. relativi alla dstwav
@@ -10,7 +10,11 @@ c par. relativi alla dstwav
 c h e` lo step radiale elementare (h per maxstep-1 = raggio max).
 c aq e` q in fermi inversi.
       parameter(h=2.5d-2)
-      complex*16 esse,eye
+      complex*16 esse,eye,essec,esset
+      complex*16 exphase,expsig,esp1,esp2
+      complex*16 y,yy,ampl
+      real*8 lambda,lsin12,sin122
+      real*8 sigma0,sigmai
 
       dimension onda(maxstep,lmax,2)
       dimension onda2(maxstep,lmax,2)
@@ -29,21 +33,6 @@ ccc Start of the code added in 2021
       CHARACTER(100) :: num1char
       CHARACTER(100) :: num2char
       CHARACTER(100) :: num3char
-   !! IF(COMMAND_ARGUMENT_COUNT().NE.3)THEN
-   !! WRITE(*,*)'ERROR, 3 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
-      ! example ./antip 50.0 40.078 20.0
-   !! STOP
-   !! ENDIF
-
-   !! CALL GET_COMMAND_ARGUMENT(1,num1char)  
-   !! CALL GET_COMMAND_ARGUMENT(2,num2char)
-   !! CALL GET_COMMAND_ARGUMENT(3,num2char)
-    
-   !! READ(num1char,*)num1     ! lab momentum MeV/c              
-   !! READ(num2char,*)num2     ! target mass
-   !! READ(num2char,*)num3     ! target charge
-
-!! Added in June 2021
 !! Values for opt pot from terminal
       CHARACTER(100) :: numu0char
       CHARACTER(100) :: numw0char
@@ -52,16 +41,16 @@ ccc Start of the code added in 2021
       CHARACTER(100) :: numr0cchar
       CHARACTER(100) :: numa0rchar
       CHARACTER(100) :: numa0ichar
-      REAL*8 :: num1
-      REAL*8 :: num2
-      REAL*8 :: num3
-      REAL*8 :: numu0
-      REAL*8 :: numw0
-      REAL*8 :: numr0r
-      REAL*8 :: numr0i
-      REAL*8 :: numr0c
-      REAL*8 :: numa0r
-      REAL*8 :: numa0i
+      double precision :: num1
+      double precision :: num2
+      double precision :: num3
+      double precision :: numu0
+      double precision :: numw0
+      double precision :: numr0r
+      double precision :: numr0i
+      double precision :: numr0c
+      double precision :: numa0r
+      double precision :: numa0i
       IF(COMMAND_ARGUMENT_COUNT().NE.10)THEN
       WRITE(*,*)'ERROR, 10 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
       !! example ./antip 50.0 40.078 20.0 30 150 1.25 1.25 1.2 0.6 0.5
@@ -117,19 +106,22 @@ c potential real and imaginary strength, radius/(A^1/3), diffuseness
 
 ccc END PARAMETERS
 
-      open(23,file='dwav.dat',status='old')
-
 c inizializzazione (in parte interattiva in parte no)
       call iniziale
       int = 1200
-      eye = cmplx(0.d0,1.d0)
-      pi = 4.d0*atan(1.d0)
+      eye = dcmplx(0.d0,1.d0)
+      pi = 4.d0*datan(1.d0)
+      amu  =  931.494
+      hxc  =  197.327
+      esq  =  1.4399764
+      r0mu = 938.27*r0mt*amu/(r0mt*amu+938.27)
+      lambda = esq*z0t*z0p*r0mu/(hxc*pmevc)
 
 c momentum is converted into 1/fm
-      pfm = pmevc/197.327
+      pfm = pmevc/hxc
 
-      do 7981, iij=1,1
-      aq = pfm*iij
+      ! do 7981, iij=1,1
+      aq = pfm!*iij
       aktr = 0.d0                                     !! k transverse (=0)
       aklon = aq                                      !! k longitudinal
       akp = sqrt(aklon*aklon+aktr*aktr)               !! |k|
@@ -137,46 +129,85 @@ c momentum is converted into 1/fm
 c      do 7345, icost = 100,-100,-1
 c      ucost = 1.d-2*icost
       do 7345, ittt = 0,2000,1
-         utheta = ittt*0.0005*pi              !! theta from 0 to pi rad ( step = (1/2000)*pi )  
+         utheta = ittt*(1.d0/2000.d0)*pi              !! theta from 0 to pi rad ( step = (1/2000)*pi )  
          ucost = cos(utheta)
 c risoluzione delle equazioni radiali (in "onda")
       call dstwav4(onda,maxstep,u0,w0,z0p,akp)    
 c calcolo dei polinomi di legendre per un dato theta (ut in unita` pi)
       call legendre
-      esser = 0.d0
-      essei = 0.d0
-      sig = 0.d0
-      do 344, i=1,lsum
+      esse = dcmplx(0.d0,0.d0)
+      essec = dcmplx(0.d0,0.d0)
+      y = cgamma(dcmplx(1,lambda))
+      sigma0 = atan2(dimag(y),dreal(y))
+      ! print *,y,sigma0
+      do 344 ik=1,lsum
 c      print *,i,amplr(i),ampli(i)
-      esser = esser + (2*i-1)*(1.d0-amplr(i))*pleg(i)
-      essei = essei + (2*i-1)*(-ampli(i))*pleg(i)
-      sig = sig + (2*i-1)*((1.d0-amplr(i))**2+ampli(i)**2) 
+      yy = cgamma(dcmplx(ik,lambda))
+      sigmai = atan2(dimag(yy),dreal(yy))
+      expsig = cdexp(2*dcmplx(0.d0,sigmai))
+      ampl = dcmplx(amplr(ik),ampli(ik))
+      esse=esse+(2*ik-1)*expsig*(ampl-1.d0)*pleg(ik)
 344   continue
 c fine do L 
-      esse = cmplx(esser,essei)
 c questa è l'ampiezza che al quadrato da la sigma diff senza coefficienti
-      esse = esse*eye*0.5d0/akp
+      esse=-esse*eye*0.5d0/akp
+
+      lsin12 = log(sin(utheta/2.d0)) 
+      sin122 = (sin(utheta/2.d0))**2
+      esp1 = -2.d0*dcmplx(0.d0,lambda)*lsin12
+      esp2 = 2.d0*dcmplx(0.d0,sigma0)
+      exphase = cdexp(esp1+esp2)
+      essec = -(lambda*exphase)/(2.d0*akp*sin122)
 c sigma è la sez diff in fm2/sr
       sigma = abs(esse)**2
       sigtot = sig*pi/akp**2
       opt = 4.d0*pi*dimag(esse)/akp
-c      print *,esse,sigma,sigtot,opt
-ccc      print *,'       ',sigma,sigtot
-      sigmaint = sigmaint+1.d-2*sigma*2.d0*pi
-ccc      print *,ucost,sigmaint
-	  !if(utheta.ne.0)then
-      print *,utheta,dreal(esse),dimag(esse)
-      !endif
+      esset = esse+essec
+
+      if(utheta.ne.0)then
+      print *,utheta,dreal(esse),dimag(esse),dreal(esset),dimag(esset)
+      end if
 7345  continue
 c fine do angoli
 
-7981   continue
+! 7981  continue
 
       stop
-      end
+
+      contains
+      complex*16 recursive function cgamma(z) result(ans)
+      complex*16 z
+      complex*16 x,t,y
+      complex*16 eye, one, cpi
+      real*8, dimension(0:8), parameter :: ppp = 
+     & (/ 0.99999999999980993d0, 676.5203681218851d0, 
+     &      -1259.1392167224028d0, 771.32342877765313d0,
+     &  -176.61502916214059d0, 12.507343278686905d0, 
+     &  -0.13857109526572012d0, 9.9843695780195716d-6, 
+     &       1.5056327351493116d-7 /)
+
+      pi = 4.d0*datan(1.d0)
+      eye = (1.d0,0.d0)
+      one = (1.d0,0.d0)
+
+      if(dreal(z).lt.0.5d0) then    
+            ans = pi/(cdsin(pi*z)*cgamma(1-z))
+      else if (dreal(z).ge.0.5d0) then
+            z = z-1
+            x = ppp(0)
+            do 131, i=1,9
+                  x = x + ppp(i)/(z+i)
+ 131        continue
+            t = z + dcmplx(8) - dcmplx(0.5)
+            ans = sqrt(2*pi) * t**(z+0.5) * cdexp(-t) * x
+      end if
+      end function cgamma
+
+      end program antiproton
+
 
       subroutine iniziale
-      implicit real*8 (a-h,o-z)
+      implicit double precision (a-h,o-z)
       common/parametri/r0r,r0i,a0r,a0i,w0d,r0c,r0mt,z0t,r0mp
       common/elle/lm
       common/wave/bind(3002)
@@ -205,7 +236,7 @@ c      print *,bind(i),i
 
       subroutine legendre
 
-      implicit real*8 (a-h,o-z)
+      implicit double precision (a-h,o-z)
       common/egendre/ucost,pleg(130)
       
 c calcolo polinomi di legendre in cos(u)
@@ -232,7 +263,7 @@ c calcolo polinomi di legendre in cos(u)
 c questo e' un programma autosufficiente per far girare la subroutine
 c dstwav in 1200 step. 
 
-      implicit real*8 (a-h,o-z)
+      implicit double precision (a-h,o-z)
 
 
       parameter (maxstep=1201)
@@ -295,12 +326,12 @@ c      print *,'xdw4=',x,k,kd
      *AI,ARS,AIS,WOD,ROC,RMT,ZT,RMP,ZP,SP,H,RMAX,LMAX,ILC,JDIM,
      *IRDIM,NONLOC,BNLDW,IWRITE,LCTOFF,RK,RMU,VE,ROE,AE)
 
-C     THIS IS A real*8 VERSION WITH UP TO 125 PARTIAL WAVES
+C     THIS IS A double precision VERSION WITH UP TO 125 PARTIAL WAVES
 C     AND UP TO 1200 RADIAL STEPS
 C     NO SPIN ORBIT OR EXCHANGE TERMS ARE PERMITTED
 C     FOR ILC=0 USE LCTOFF=LMAX TO COMPUTE CORRECT NO OF COUL FUNCTIONS
 C
-      IMPLICIT real*8(A-H,O-Z)
+      IMPLICIT double precision(A-H,O-Z)
 C
       DIMENSION YDWR(IRDIM,125), YDWI(IRDIM,125), rextra(4,1201)
       COMMON /CONST/ PI,HXC,FM0,ESQ
@@ -314,16 +345,16 @@ C
 C     SPECIAL VERSION FOR 125 PARTIAL WAVES
 C
       IF(JDIM.GT.1)CALL EXIT
-      IF (IWRITE) 1,1,5
- 1    WRITE (6,82)
-      IF (NONLOC) 2,3,3
- 2    WRITE (6,83)
-      GO TO 4
- 3    WRITE (6,84) BNLDW,NONLOC
- 4    WRITE (6,85) RMT,ZT,RMP,ZP,SP
-      WRITE (6,86)
-      WRITE (6,87) UO,ROR,AR,WO,ROI,AI,WOD
-      WRITE (6,90) ROC
+ !      IF (IWRITE) 1,1,5
+ ! 1    WRITE (6,82)
+ !      IF (NONLOC) 2,3,3
+ ! 2    WRITE (6,83)
+ !      GO TO 4
+ ! 3    WRITE (6,84) BNLDW,NONLOC
+ ! 4    WRITE (6,85) RMT,ZT,RMP,ZP,SP
+ !      WRITE (6,86)
+ !      WRITE (6,87) UO,ROR,AR,WO,ROI,AI,WOD
+ !      WRITE (6,90) ROC
 
 c ------------------------------------
 c             CINEMATICA
@@ -620,10 +651,10 @@ c		output
 c -----------------------------------
 
       !! HERE ARE CALCULATED THE DSIGMAS !!
-      IF (IWRITE) 60,60,110
- 110  IF(IWRITE-2)63,111,63
- 60   WRITE (6,94) EPCM,RMU,RK,ETA
-      WRITE (6,95)
+ !      IF (IWRITE) 60,60,110
+ ! 110  IF(IWRITE-2)63,111,63
+ ! 60   WRITE (6,94) EPCM,RMU,RK,ETA
+ !      WRITE (6,95)
  111  REACT=0.
       DO 62 LP1=1,LMAXP1
       L=LP1-1
@@ -633,8 +664,8 @@ c -----------------------------------
 cc62   WRITE (6,96) L,RJ,SLP1R(LP1),SLP1I(LP1)
 62    REACT=REACT*10.*PI/RK**2
       elast=elast*10.*PI/RK**2
-      write(23,*)elast,react
-      WRITE (6,97) REACT
+      ! write(23,*)elast,react
+      ! WRITE (6,97) REACT
  63   IF (NONLOC) 72,64,64
  64   A6=0.125*BNLDW**2
       IULP1=IUL+1
@@ -665,21 +696,21 @@ c		format
 c -------------------------------------
 
 C
- 82   FORMAT(//' DISTORTED WAVE SUBROUTINE')
- 83   FORMAT (24H NO NON-LOCAL CORRECTION/ )
- 84   FORMAT(' NON-LOCAL CORRECTION, BETA =',F9.4/' OPTION NUMBER =',
-     1I4/)
- 85   FORMAT (' TARGET- MASS',F7.3,' CHARGE',F7.3,5X,' PROJECTILE- ENERG
-     1Y',1PE10.3,' MASS',E10.3,' CHARGE',0PF7.3,' SPIN',F7.3/ )
- 86   FORMAT (27H NUCLEAR PARAMETERS (V,R,A))
- 87   FORMAT(' CENTRAL POTL real',3F9.4,' IMAG VOL',3F9.4,' SURF',F9.4)
- 90   FORMAT(' COULOMB   RADIUS ',F9.4/)
- 94   FORMAT(' DERIVED DATA  PSQ/2*RMU, RMU, K, ETA =',4F10.4//
-     1' S-MATRIX ELEMENTS')
- 95   FORMAT (1X,4H  L ,5H  J  ,14H  real*8  PART  ,14H  IMAG  PART    )
- 96   FORMAT (1X,I3,F5.1,1X,E12.4,2X,E12.4)
- 97   FORMAT(//1X,'REACTION CROSS SECTION IN MB IS',1PE12.4)
- 402  FORMAT(' *****  RELATIVISTIC KINEMATICS  *****')
+ ! 82   FORMAT(//' DISTORTED WAVE SUBROUTINE')
+ ! 83   FORMAT (24H NO NON-LOCAL CORRECTION/ )
+ ! 84   FORMAT(' NON-LOCAL CORRECTION, BETA =',F9.4/' OPTION NUMBER =',
+ !     1I4/)
+ ! 85   FORMAT (' TARGET- MASS',F7.3,' CHARGE',F7.3,5X,' PROJECTILE- ENERG
+ !     1Y',1PE10.3,' MASS',E10.3,' CHARGE',0PF7.3,' SPIN',F7.3/ )
+ ! 86   FORMAT (27H NUCLEAR PARAMETERS (V,R,A))
+ ! 87   FORMAT(' CENTRAL POTL real',3F9.4,' IMAG VOL',3F9.4,' SURF',F9.4)
+ ! 90   FORMAT(' COULOMB   RADIUS ',F9.4/)
+ ! 94   FORMAT(' DERIVED DATA  PSQ/2*RMU, RMU, K, ETA =',4F10.4//
+ !     1' S-MATRIX ELEMENTS')
+ ! 95   FORMAT (1X,4H  L ,5H  J  ,14H  double precision  PART  ,14H  IMAG  PART    )
+ ! 96   FORMAT (1X,I3,F5.1,1X,E12.4,2X,E12.4)
+ ! 97   FORMAT(//1X,'REACTION CROSS SECTION IN MB IS',1PE12.4)
+ ! 402  FORMAT(' *****  RELATIVISTIC KINEMATICS  *****')
       END
       
 c ----------------------------------------------------------------
@@ -693,8 +724,8 @@ c ----------------------------------------------------------------
 
 
       SUBROUTINE COULFN(F,FD,G,GD,SIGMA,ETA,AK,R,L,IWRITE)
-      IMPLICIT real*8(A-H,O-Z)
-      real*8 AK
+      IMPLICIT double precision(A-H,O-Z)
+      double precision AK
       DIMENSION F(1),FD(1),G(1),GD(1),SIGMA(1)
 C------------------------------------------------------------------------------
 C      PRINT CONTROL: IWRITE = 1  DON'T PRINT
@@ -744,8 +775,8 @@ C
       END
  
       SUBROUTINE RCWFN(RHO,ETA,MINL,MAXL,FC,FCP,GC,GCP,ACCUR,STEP)
-      IMPLICIT real*8 (A-H,O-Z)
-      real*8 K,K1,K2,K3,K4,M1,M2,M3,M4
+      IMPLICIT double precision (A-H,O-Z)
+      double precision K,K1,K2,K3,K4,M1,M2,M3,M4
       DIMENSION FC(1),FCP(1),GC(1),GCP(1)
 C------------------------------------------------------------------------------
 C      COULOMB WAVEFUNCTIONS CALCULATED AT R=RHO BY THE
@@ -829,7 +860,7 @@ C______________________________________________________________________________
 C------------------------------------------------------------------------------
 C      REPEAT FOR R = TURN IF RHO LT TURN
 C      NOW OBTAIN P + I.Q FOR MINL FROM CONTINUED FRACTION (32)
-C      real*8 ARITHMETIC TO FACILITATE CONVERSION TO real*8
+C      double precision ARITHMETIC TO FACILITATE CONVERSION TO double precision
 C______________________________________________________________________________
       P  = 0.
       Q  = R - ETA
@@ -945,7 +976,7 @@ C______________________________________________________________________________
       !!-> if Zp!=0 and Rx>Rc =>1/Rx (outside charged sphere)
       !!                Rx<Rc =>C1+C2*Rx^2 (inside charged sphere with charge volume distrib.)
       FUNCTION F1BDS2 (ZP ,RCOULE,RX,RECRX,A5,A6)
-      IMPLICIT real*8 (A-H,O-Z)
+      IMPLICIT double precision (A-H,O-Z)
       IF(abs(ZP).GT.1.D-6)GO TO 2
       F1BDS2=0.0D0
       RETURN
