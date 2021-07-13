@@ -14,7 +14,7 @@ c aq e` q in fermi inversi.
       complex*16 exphase,expsig,esp1,esp2
       complex*16 y,yy,ampl
       real*8 lambda,lsin12,sin122
-      real*8 sigma0,sigmai
+      real*8 sigma0,sigmai,theta
 
       dimension onda(maxstep,lmax,2)
       dimension onda2(maxstep,lmax,2)
@@ -41,6 +41,7 @@ ccc Start of the code added in 2021
       CHARACTER(100) :: numr0cchar
       CHARACTER(100) :: numa0rchar
       CHARACTER(100) :: numa0ichar
+      CHARACTER(100) :: numthetachar
       double precision :: num1
       double precision :: num2
       double precision :: num3
@@ -51,9 +52,10 @@ ccc Start of the code added in 2021
       double precision :: numr0c
       double precision :: numa0r
       double precision :: numa0i
-      IF(COMMAND_ARGUMENT_COUNT().NE.10)THEN
-      WRITE(*,*)'ERROR, 10 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
-      !! example ./antip 50.0 40.078 20.0 30 150 1.25 1.25 1.2 0.6 0.5
+      double precision :: numtheta
+      IF(COMMAND_ARGUMENT_COUNT().NE.11)THEN
+      WRITE(*,*)'ERROR, 11 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
+      !! example ./antip 50.0 40.078 20.0 30 150 1.25 1.25 1.2 0.6 0.5 10.0
       !! This number will be taken by a text file
       STOP
       ENDIF
@@ -68,6 +70,7 @@ ccc Start of the code added in 2021
       CALL GET_COMMAND_ARGUMENT(8,numr0cchar)
       CALL GET_COMMAND_ARGUMENT(9,numa0rchar)
       CALL GET_COMMAND_ARGUMENT(10,numa0ichar)
+      CALL GET_COMMAND_ARGUMENT(11,numthetachar)
       
 
       READ(num1char,*)num1     ! lab momentum MeV/c              
@@ -80,6 +83,7 @@ ccc Start of the code added in 2021
       READ(numr0cchar,*)numr0c     !! Coulomb radius/A^(1/3) fm              
       READ(numa0rchar,*)numa0r     !! real diffusness fm
       READ(numa0ichar,*)numa0i     !! img diffusness fm
+      READ(numthetachar,*)numtheta
 
 ccc   End of the code added in 2021
 ccc KEY PARAMETERS ///////////////////////////////////
@@ -103,6 +107,8 @@ c potential real and imaginary strength, radius/(A^1/3), diffuseness
       r0c = numr0c 			!! old value:1.2
       a0r = numa0r			!! old value: 0.6
       a0i = numa0i			!! old value: 0.5
+
+      theta = numtheta
 
 ccc END PARAMETERS
 
@@ -128,8 +134,8 @@ c momentum is converted into 1/fm
       sigmaint = 0.d0
 c      do 7345, icost = 100,-100,-1
 c      ucost = 1.d-2*icost
-      do 7345, ittt = 0,2000,1
-         utheta = ittt*(1.d0/2000.d0)*pi              !! theta from 0 to pi rad ( step = (1/2000)*pi )  
+      ! do 7345, ittt = 0,2000,1
+         utheta = theta*pi/180.d0!!ittt*(1.d0/2000.d0)*pi              !! theta from 0 to pi rad ( step = (1/2000)*pi )  
          ucost = cos(utheta)
 c risoluzione delle equazioni radiali (in "onda")
       call dstwav4(onda,maxstep,u0,w0,z0p,akp)    
@@ -167,7 +173,7 @@ c sigma è la sez diff in fm2/sr
       if(utheta.ne.0)then
       print *,utheta,dreal(esse),dimag(esse),dreal(esset),dimag(esset)
       end if
-7345  continue
+! 7345  continue
 c fine do angoli
 
 ! 7981  continue

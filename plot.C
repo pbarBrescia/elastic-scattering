@@ -3,7 +3,7 @@ void plot(string input_file = "out50.dat"){
 	TGraph * gStrong = new TGraph(input_file.c_str(), "%lg %*lg %lg");            // 1st and 3rd column
 	TGraph * gCoulomb  = new TGraph(input_file.c_str(), "%lg %*lg %*lg %lg");       // 1st and 4th column
 	TGraph * gSum     = new TGraph(input_file.c_str(), "%lg %*lg %*lg %*lg %lg");  // 1st and 5th column
-	TGraph * gFriedman = new TGraph("data/Ca40_Friedman.dat", "%lg %lg");
+	TGraph * gFriedman = new TGraph("data/pb208_483.dat", "%lg %lg");
 
 
 	// line width
@@ -12,13 +12,15 @@ void plot(string input_file = "out50.dat"){
 	gStrong->SetLineWidth(linew);
 	gSum->SetLineWidth(linew);
 	gFriedman->SetMarkerSize(1);
-	gFriedman->SetMarkerStyle(22);
+	gFriedman->SetMarkerStyle(kPlus);
 
 	// colors
 	gCoulomb->SetLineColor(kGreen-2);
+	gCoulomb->SetLineStyle(2);
 	gStrong->SetLineColor(kRed-3);
-	gSum->SetLineColor(kGray+2);
-	gFriedman->SetMarkerColor(kBlack);
+	gStrong->SetLineStyle(2);
+	gSum->SetLineColor(kBlack);
+	gFriedman->SetMarkerColor(9);
 
 	// multigraph
 	TMultiGraph * mg = new TMultiGraph();
