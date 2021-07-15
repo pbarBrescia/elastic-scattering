@@ -89,4 +89,30 @@ For using `execute.sh`, do:
 ```
 
 - `<input_file>`: a text file containing the 10 parameters. If you insert a title line, please be sure to put a `#` before. Remember to insert a empty line below the parameters.
-- `<output_file>`: a text file in which is saved the table to do the plot in `plot.C`  
+- `<output_file>`: a text file in which is saved the table to do the plot in `plot.C`
+
+## p_scan.sh
+
+`p_scan.sh` execute a scan on momentum or angle.
+
+Two options are available:
+
+1. `mom`: momentum scan
+example:
+```bash
+./p_scan.sh mom
+```
+This command executes a scan on momentum from 50 to 400 MeV/c with steps of 25 MeV/c, using the code `antip_scan.for` (in `src/`).
+
+Then, it saves a figure in `fig/` with the **cross section** as a function of the momentum, using `gnuplot`. 
+
+2. `ang`: angle scan
+example:
+```bash
+./p_scan.sh ang <momentum (MeV/c)> <angle (deg)>
+```
+This command executes the calculation of the **differential cross section** for a specific momentum and angle, printing the values on terminal.
+
+The values printed are: 
+
+angle, real(nuclear), imag(nuclear), real(nuc+coul), imag(nuc+coul) 

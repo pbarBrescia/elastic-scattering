@@ -12,9 +12,11 @@ c aq e` q in fermi inversi.
       parameter(h=2.5d-2)
       complex*16 esse,eye,essec,esset
       complex*16 exphase,expsig,esp1,esp2
-      complex*16 y,yy,ampl
+      complex*16 y,yy,ampl,amplc,ampltot
       real*8 lambda,lsin12,sin122
-      real*8 sigma0,sigmai,theta
+      real*8 sigma0,sigmai,theta,elast,react
+      character(3) :: opt
+      character(50) :: filepath
 
       dimension onda(maxstep,lmax,2)
       dimension onda2(maxstep,lmax,2)
@@ -42,6 +44,7 @@ ccc Start of the code added in 2021
       CHARACTER(100) :: numa0rchar
       CHARACTER(100) :: numa0ichar
       CHARACTER(100) :: numthetachar
+      CHARACTER(100) :: optchar
       double precision :: num1
       double precision :: num2
       double precision :: num3
@@ -53,9 +56,9 @@ ccc Start of the code added in 2021
       double precision :: numa0r
       double precision :: numa0i
       double precision :: numtheta
-      IF(COMMAND_ARGUMENT_COUNT().NE.11)THEN
-      WRITE(*,*)'ERROR, 11 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
-      !! example ./antip 50.0 40.078 20.0 30 150 1.25 1.25 1.2 0.6 0.5 10.0
+      IF(COMMAND_ARGUMENT_COUNT().NE.12)THEN
+      WRITE(*,*)'ERROR, 12 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
+      !! example ./antip 50.0 40.078 20.0 30 150 1.25 1.25 1.2 0.6 0.5 ang 10.0
       !! This number will be taken by a text file
       STOP
       ENDIF
@@ -70,7 +73,8 @@ ccc Start of the code added in 2021
       CALL GET_COMMAND_ARGUMENT(8,numr0cchar)
       CALL GET_COMMAND_ARGUMENT(9,numa0rchar)
       CALL GET_COMMAND_ARGUMENT(10,numa0ichar)
-      CALL GET_COMMAND_ARGUMENT(11,numthetachar)
+      CALL GET_COMMAND_ARGUMENT(11,optchar)
+      CALL GET_COMMAND_ARGUMENT(12,numthetachar)
       
 
       READ(num1char,*)num1     ! lab momentum MeV/c              
@@ -83,7 +87,8 @@ ccc Start of the code added in 2021
       READ(numr0cchar,*)numr0c     !! Coulomb radius/A^(1/3) fm              
       READ(numa0rchar,*)numa0r     !! real diffusness fm
       READ(numa0ichar,*)numa0i     !! img diffusness fm
-      READ(numthetachar,*)numtheta
+      READ(optchar,*)opt 		   !! option for scan: 'mom' or 'ang'
+      READ(numthetachar,*)numtheta !! angle theta (deg)
 
 ccc   End of the code added in 2021
 ccc KEY PARAMETERS ///////////////////////////////////
@@ -108,9 +113,19 @@ c potential real and imaginary strength, radius/(A^1/3), diffuseness
       a0r = numa0r			!! old value: 0.6
       a0i = numa0i			!! old value: 0.5
 
-      theta = numtheta
+      theta = numtheta 		!! angle theta (deg)
 
+      ! opt = 'ang'
+
+      if (opt.ne.'ang'.and.opt.ne.'mom') then
+      write(*,*)'ERROR, PROVIDE A VALID OPTION FOR SCAN'
+      write(*,*)'<OPTION>: "ANG" OR "MOM"'
+      stop
+      end if
+
+      filepath="./results/int_cs.dat"
 ccc END PARAMETERS
+      if(opt.eq.'mom') open(23,file=filepath,access='append') 		!! save INTegral Cross Section in .dat file
 
 c inizializzazione (in parte interattiva in parte no)
       call iniziale
@@ -126,59 +141,81 @@ c inizializzazione (in parte interattiva in parte no)
 c momentum is converted into 1/fm
       pfm = pmevc/hxc
 
-      ! do 7981, iij=1,1
-      aq = pfm!*iij
+      aq = pfm
       aktr = 0.d0                                     !! k transverse (=0)
       aklon = aq                                      !! k longitudinal
       akp = sqrt(aklon*aklon+aktr*aktr)               !! |k|
-      sigmaint = 0.d0
-c      do 7345, icost = 100,-100,-1
-c      ucost = 1.d-2*icost
-      ! do 7345, ittt = 0,2000,1
-         utheta = theta*pi/180.d0!!ittt*(1.d0/2000.d0)*pi              !! theta from 0 to pi rad ( step = (1/2000)*pi )  
-         ucost = cos(utheta)
+
+	  if(opt.eq.'ang') then 	!! only angle theta, no cycle!
+	  itmin = 1
+	  itmax = 1
+	  else if(opt.eq.'mom') then 	!! cycle on theta is necessary for calculate dstwav4 (?)
+	  itmin = 0
+	  itmax = 500
+	  end if
+
+	  !! start do cycle on angle
+      do 7345, ittt = itmin,itmax
+      	 if(opt.eq.'ang') then
+         utheta = theta*pi/180.d0
+         else if (opt.eq.'mom') then  
+         utheta = ittt*(1.d0/dble(itmax))*pi 	!! theta from 0 to pi rad ( step = (1/itmax)*pi )
+         end if
+         ucost = cos(utheta) 					!! cos(theta) for legendre polynomial (see legendre subroutine)
 c risoluzione delle equazioni radiali (in "onda")
-      call dstwav4(onda,maxstep,u0,w0,z0p,akp)    
+         call dstwav4(onda,maxstep,u0,w0,z0p,akp)    
 c calcolo dei polinomi di legendre per un dato theta (ut in unita` pi)
-      call legendre
-      esse = dcmplx(0.d0,0.d0)
-      essec = dcmplx(0.d0,0.d0)
-      y = cgamma(dcmplx(1,lambda))
-      sigma0 = atan2(dimag(y),dreal(y))
-      ! print *,y,sigma0
-      do 344 ik=1,lsum
-c      print *,i,amplr(i),ampli(i)
-      yy = cgamma(dcmplx(ik,lambda))
-      sigmai = atan2(dimag(yy),dreal(yy))
-      expsig = cdexp(2*dcmplx(0.d0,sigmai))
-      ampl = dcmplx(amplr(ik),ampli(ik))
-      esse=esse+(2*ik-1)*expsig*(ampl-1.d0)*pleg(ik)
-344   continue
+	     call legendre
+
+	     esse = dcmplx(0.d0,0.d0)
+	     essec = dcmplx(0.d0,0.d0)
+	     y = cgamma(dcmplx(1,lambda))
+	     sigma0 = atan2(dimag(y),dreal(y))
+	     ! print *,y,sigma0
+	     ! start do cyle on angular momentum quantum number
+	     do 344 ik=1,lsum
+         	! print *,i,amplr(i),ampli(i)
+	      	yy = cgamma(dcmplx(ik,lambda))
+	      	sigmai = atan2(dimag(yy),dreal(yy))
+	      	expsig = cdexp(2*dcmplx(0.d0,sigmai)) 	!! phase due to Coulomb distortion
+	      	ampl = dcmplx(amplr(ik),ampli(ik))
+	      	esse=esse+(2*ik-1)*expsig*(ampl-1.d0)*pleg(ik) 
+	      	sig=sig+(2*ik-1)*(-ampli(ik))
+344   	 continue
 c fine do L 
 c questa è l'ampiezza che al quadrato da la sigma diff senza coefficienti
-      esse=-esse*eye*0.5d0/akp
+	     esse=-esse*eye*0.5d0/akp
 
-      lsin12 = log(sin(utheta/2.d0)) 
-      sin122 = (sin(utheta/2.d0))**2
-      esp1 = -2.d0*dcmplx(0.d0,lambda)*lsin12
-      esp2 = 2.d0*dcmplx(0.d0,sigma0)
-      exphase = cdexp(esp1+esp2)
-      essec = -(lambda*exphase)/(2.d0*akp*sin122)
-c sigma è la sez diff in fm2/sr
-      sigma = abs(esse)**2
-      sigtot = sig*pi/akp**2
-      opt = 4.d0*pi*dimag(esse)/akp
-      esset = esse+essec
+	     lsin12 = log(sin(utheta/2.d0)) 
+	     sin122 = (sin(utheta/2.d0))**2
+	     esp1 = -2.d0*dcmplx(0.d0,lambda)*lsin12 	!! Coulomb phase 1
+	     esp2 = 2.d0*dcmplx(0.d0,sigma0) 			!! Coulomb phase 2
+	     exphase = cdexp(esp1+esp2)
+	     essec = -(lambda*exphase)/(2.d0*akp*sin122) !! Coulomb scattering amplitude
 
-      if(utheta.ne.0)then
-      print *,utheta,dreal(esse),dimag(esse),dreal(esset),dimag(esset)
-      end if
-! 7345  continue
+	     ! total amplitude (nuclear+coulomb)
+	     esset = esse+essec
+	 ! different indentation necessary
+	 ! fortran is a special child...
+	 if(utheta.ne.0) then
+	 if(opt.eq.'ang') then
+	 print *,utheta,dreal(esse),dimag(esse),dreal(esset),dimag(esset)
+	 end if
+	 end if
+7345  continue
 c fine do angoli
-
-! 7981  continue
-
-      ! stop
+	  if(opt.eq.'mom') then
+		 elast = 0.d0
+	     react = 0.d0
+		 do 2323, mm=1,lsum
+			 elast = elast + (2*mm-1)*((amplr(mm)-1.d0)**2+ampli(mm)**2)
+	    	 react = react + (2*mm-1)*(1.d0-amplr(mm)**2-ampli(mm)**2)
+2323  	 continue	
+		 elast = elast*pi/akp**2
+	     react = react*pi/akp**2
+		 sigsum = elast+react
+		 if (opt.eq.'mom') write(23,*)pmevc,elast,react,sigsum
+	  end if  
 
       contains
       complex*16 recursive function cgamma(z) result(ans)
@@ -629,7 +666,7 @@ C______________________________________________________________________________
       VLP1=VLP1/YLP1
       WLP1=WLP1/YLP1
       YLP1=VLP1/WLP1
-      DEN=1./(1.d0+XLP1**2)
+      DEN=1.d0/(1.d0+XLP1**2)
       SLP1R(LP1)=-WLP1*(1.d0+XLP1*YLP1)*DEN
       SLP1I(LP1)=VLP1*(1.d0-XLP1/YLP1)*DEN
       amplr(lp1) = slp1r(lp1)                                     !! S_l (real)
@@ -661,15 +698,17 @@ c -----------------------------------
  ! 110  IF(IWRITE-2)63,111,63
  ! 60   WRITE (6,94) EPCM,RMU,RK,ETA
  !      WRITE (6,95)
- 111  REACT=0.
+ 111  REACT=0.d0
+      elast=0.d0
       DO 62 LP1=1,LMAXP1
       L=LP1-1
       REACT=REACT+(2*L+1)*(1.-SLP1R(LP1)**2-SLP1I(LP1)**2)        !! dSigma reaction !!
       elast=elast+(2*l+1)*((1-slp1r(lp1))**2+slp1i(lp1)**2)        !! dSigma elastic !!
       RJ=L
 cc62   WRITE (6,96) L,RJ,SLP1R(LP1),SLP1I(LP1)
-62    REACT=REACT*10.*PI/RK**2
-      elast=elast*10.*PI/RK**2
+62    continue
+      REACT=REACT*10.d0*PI/RK**2
+      elast=elast*10.d0*PI/RK**2
       ! write(23,*)elast,react
       ! WRITE (6,97) REACT
  63   IF (NONLOC) 72,64,64
