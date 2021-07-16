@@ -86,11 +86,11 @@ if [ "${arr[10]}" = "mom" ]; then
 		./bin/antip_scan $mom.0 "${arr[@]:1:12}" 
 		echo "plab momentum "$mom
 	done
-	echo "Text file with results saved in results/ directory."
+	echo "Text file with results saved in results/ directory with name ${filename}.dat"
 	echo "Creating the plot..."
 	# plot with gnuplot of the cross sections
 	plotGraph
-	echo "Plot saved in fig/ directory."
+	echo "Plot saved in fig/ directory with name ${filename}.png"
 elif [ "${arr[10]}" = "ang" ]; then
 	# Calculate the differential cross section
 	# at specific angle and momentum
