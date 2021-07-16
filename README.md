@@ -138,7 +138,26 @@ angle, real(nuclear), imag(nuclear), real(nuc+coul), imag(nuc+coul)
 
 To execute the script, use:
 ```bash
-./p_scan.sh param.dat
+./p_scan.sh <option> <parameters>
+```
+Available options are:
+
+* `-i` (interactive mode): parameters are passed via terminal
+Example:
+```bash
+./p_scan.sh -i 50.0 40.078 20.0 30.0 150.0 1.25 1.25 1.25 0.5 0.5 mom 999
+```
+* `-f` (file mode): parameters are passed via text file
+Esample:
+```bash
+./p_scan.sh -f param.dat
+```
+* `-h` or `--help`: print a help message for usage
+
+You can also combine the parameters input modes with `-h` option to have detailed help on the input mode:
+```bash
+./p_scan.sh -i -h (or --help)
+./p_scan.sh -f -h (or --help)
 ```
 
 **WARNING**: look in the `param.dat` file - or your parameter file - and check if the number of parameters is correct (it must be 12), or check if you have commented the part you do not need for this script.
