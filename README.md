@@ -91,6 +91,31 @@ For using `execute.sh`, do:
 - `<input_file>`: a text file containing the 10 parameters. If you insert a title line, please be sure to put a `#` before. Remember to insert a empty line below the parameters.
 - `<output_file>`: a text file in which is saved the table to do the plot in `plot.C`
 
+Here we provide an example of input file, also present in the repository - name: `param.dat`.
+
+```plaintext
+#PARAMETERS FOR EXECUTE.SH
+#plab At Zt U0 W0 R0r R0i R0c A0r A0i
+#MeV/c n n MeV MeV fm fm fm fm fm
+#
+#50.0 40.078 20.0 30.0 150.0 1.25 1.25 1.25 0.5 0.5
+100.0 40.078 20.0 2.0 95.0 1.45 1.17 1.25 0.53 0.5
+#
+############################################################
+#
+#PARAMETERS FOR P_SCAN.SH
+#plab At Zt U0 W0 R0r R0i R0c A0r A0i opt theta
+#MeV/c n n MeV MeV fm fm fm fm fm [] deg
+#
+#50 40.078 20.0 30.0 150.0 1.25 1.25 1.25 0.5 0.5 mom 999
+#50 40.078 20.0 30.0 150.0 1.25 1.25 1.25 0.5 0.5 ang 12.5
+```
+
+The lines that starts with a `#` are not read by the scripts - they are comments useful for the user or to store parameter already used.
+In this case, only the sixth line is read by `execute.sh`. 
+
+If this specific file is read by the other script (see next section), it gives an error due to the wrong number of parameters.
+
 ## p_scan.sh
 
 `p_scan.sh` execute a scan on momentum or angle.
@@ -98,21 +123,22 @@ For using `execute.sh`, do:
 Two options are available:
 
 1. `mom`: momentum scan
-example:
-```bash
-./p_scan.sh mom
-```
-This command executes a scan on momentum from 50 to 400 MeV/c with steps of 25 MeV/c, using the code `antip_scan.for` (in `src/`).
+
+With this option, the script executes a scan on momentum from the momentum provided in the parameter file, adding steps of 10 MeV/c for 10 times. It uses the code `antip_scan.for` (in `src/`).
 
 Then, it saves a figure in `fig/` with the **cross section** as a function of the momentum, using `gnuplot`. 
 
 2. `ang`: angle scan
-example:
-```bash
-./p_scan.sh ang <momentum (MeV/c)> <angle (deg)>
-```
-This command executes the calculation of the **differential cross section** for a specific momentum and angle, printing the values on terminal.
+
+This this option, it executes the calculation of the **differential cross section** for a specific momentum and angle, printing the values on terminal.
 
 The values printed are: 
 
 angle, real(nuclear), imag(nuclear), real(nuc+coul), imag(nuc+coul) 
+
+To execute the script, use:
+```bash
+./p_scan.sh param.dat
+```
+
+**WARNING**: look in the `param.dat` file - or your parameter file - and check if the number of parameters is correct (it must be 12), or check if you have commented the part you do not need for this script.

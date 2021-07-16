@@ -54,6 +54,17 @@ while IFS= read -r line;
 		fi
 	done < "$1"
 
+if [ ${#arr[@]} -ne 12 ]; then
+	echo "ERROR!"
+	echo "Please, provide a file with the correct number of parameter (12)."
+	echo "Execute: "
+	echo "./p_scan.sh -h (or --help)"
+	echo "for more info."
+	exit 1
+else
+	true
+fi
+
 if [ "${arr[10]}" = "mom" ]; then
 	# Remove - if present - the old output
 	rm $outfile 2>/dev/null
