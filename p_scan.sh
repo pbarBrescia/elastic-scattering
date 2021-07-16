@@ -1,42 +1,87 @@
 #! /usr/bin/env bash
 
-filename=int_cs
-outfile=./results/int_cs.dat 
+# SCRIPT TO SCAN ON MOMENTUM AND ANGLE IN ANTIP_SCAN.FOR
 
-gfortran -std=gnu src/antip_scan.for -o bin/antip_scan
-
-opt=$1
-
-if [ "$opt" = "mom" ]; then
-	rm $outfile 2>/dev/null
-	echo "Executing the scan on momentum..."
-	for mom in {50..400..25} ; do
-		./bin/antip_scan $mom.0 40.078 20.0 30.0 150.0 1.25 1.25 1.25 0.6 0.5 $opt 1.0 #> /tmp/file #2>/dev/null
-		# awk -v m=$mom '{print m,$0}' /tmp/file >> $outfile
-		echo "plab momentum "$mom
-	done
-	echo "Text file with results saved in results/ directory."
-	echo "Creating the plot..."
-	gnuplot <<-EOF
+# Function to plot in gnuplot from the output file
+# of antip_scan.for (option "mom" only)
+function plotGraph()
+{
+	gnuplot <<- EOF
 		set xlabel "plab (MeV/c)"
 		set ylabel "{/Symbol s} (mb)"
 		set title "Integral cross section (elastic and reaction)"
+		set grid
 		set term png
 		set output "fig/${filename}.png"
 		plot "${outfile}" using 1:2 title "elastic" with linespoints, \
 		"${outfile}" using 1:3 title "reaction" with linespoints, \
 		"${outfile}" using 1:4 title "elastic+reaction" with linespoints
 	EOF
-	echo "Plot saved in fig/ directory."
-elif [ "$opt" = "ang" ]; then
-	mom=$2
-	ang=$3
-	./bin/antip_scan $mom 40.078 20.0 30.0 150.0 1.25 1.25 1.25 0.6 0.5 $opt $ang
-else
-	echo "Please, provide 1 or 3 arguments: "
-	echo "	Usage: ./p_scan.sh <option> (<argument 1> <argument 2>) "
+}
+
+# input of script: parameter file (path)
+inputfile=$1
+# output filename and path
+filename=int_cs
+outfile=./results/${filename}.dat 
+
+# Warning message/help option
+if [ $# -ne 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+	echo "Please, provide a parameter file: "
+	echo "	Usage:	./p_scan.sh <parameter_file>"
+	echo "		./p_scan.sh -h (or --help)"
 	echo
-	echo "	option \"mom\" -> ./p_scan.sh mom : scan from 50 to 400 MeV/c (integral cross section)"
-	echo "	option \"ang\" -> ./p_scan.sh ang <momentum(MeV/c)> <angle(deg)> : diff. cross section for specific momentum and angle"
+	echo "Check if the file is present."
+	echo "In case, create a text file and provides 12 parameters:"
+	echo "plab(MeV/c), A target (amu), Z target, U0 (MeV), W0(MeV), r0r(fm), r0i(fm), r0c(fm), a0r(fm), a0i(fm), option (\"mom\" or \"ang\"), angle (deg)"
+	echo "For comments, use # at the beginning of line."
+	echo "If you use \"mom\" option, as convention put as angle 999."
+	exit 1
 fi
 
+# Compile the antip_scan.for code and create the
+# executable in bin/ directory
+gfortran -std=gnu src/antip_scan.for -o bin/antip_scan
+
+while IFS= read -r line;
+	do
+		if [[ "$line" == "#"* ]]; then 	#line with # are not read
+			true
+		else 
+			# echo "$line"
+			# Save the line in an array
+			IFS=" " read -r -a arr <<< "$line"
+		fi
+	done < "$1"
+
+if [ "${arr[10]}" = "mom" ]; then
+	# Remove - if present - the old output
+	rm $outfile 2>/dev/null
+
+	# Number of step
+	N=10
+	# Value of the step (MeV/c)
+	step=10
+
+	echo "Executing the scan on momentum..."
+	for ((i=0; i<"$N"+1; i++)); do
+		# Create the array for momentum, starting
+		# from the value given in the text file
+		arrmom[i]=$(expr $((arr+i*step))) 
+	done
+	for mom in "${arrmom[@]:0:$N+1}"; do
+		# Calculate the elastic and inelastic
+		# cross sections
+		./bin/antip_scan $mom.0 "${arr[@]:1:12}" 
+		echo "plab momentum "$mom
+	done
+	echo "Text file with results saved in results/ directory."
+	echo "Creating the plot..."
+	# plot with gnuplot of the cross sections
+	plotGraph
+	echo "Plot saved in fig/ directory."
+elif [ "${arr[10]}" = "ang" ]; then
+	# Calculate the differential cross section
+	# at specific angle and momentum
+	./bin/antip_scan "${arr[@]:0:12}"
+fi
