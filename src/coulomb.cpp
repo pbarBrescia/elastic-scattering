@@ -121,7 +121,7 @@ int main(int argc, char* argv[]){
  
   //cout << amplitude1 << " " << amplitude2 << " " << amplitude3 << "\n";
 
-  int nstep = 2000;
+  int nstep = 500;
   double step = (double) 1./nstep;
 
   for (int itheta = 0; itheta<nstep; itheta++){

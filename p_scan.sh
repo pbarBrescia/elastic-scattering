@@ -60,6 +60,7 @@ declare -a arr
 # Compile the antip_scan.for code and create the
 # executable in bin/ directory
 gfortran -std=legacy src/antip_scan.for -o bin/antip_scan
+g++ src/coulomb.cpp -o bin/scattering
 
 if [ "$opt" = "-f" ]; then
 
@@ -102,15 +103,9 @@ if [ "${arr[10]}" = "mom" ]; then
 	step=10
 	echo "Executing the scan on momentum..."
 	for ((i=0; i<"$N"+1; i++)); do
-		# Create the array for momentum, starting
-		# from the value given in the text file
-		# ${arr%.*} convert from float to int, then
-		# again a float with .0
-		arrmom[i]=$( expr $((${arr%.*}+i*step)) ).0 
-	done
-	for mom in "${arrmom[@]:0:$N+1}"; do
+		mom=`echo $arr+$i*$step | bc -l`
 		# Calculate the elastic and inelastic
-		# cross sections
+		# cross sections scanning momentum
 		./bin/antip_scan $mom "${arr[@]:1:12}" 
 		echo "plab momentum "$mom
 	done
@@ -120,9 +115,23 @@ if [ "${arr[10]}" = "mom" ]; then
 	plotGraph
 	echo "Plot saved in fig/ directory with name ${filename}.png"
 elif [ "${arr[10]}" = "ang" ]; then
-	# Calculate the differential cross section
-	# at specific angle and momentum
-	./bin/antip_scan "${arr[@]:0:12}"
+	# n=500
+	# angmax=180
+ 	# angstep=`echo 180/$n | bc -l`
+ 	# rm /tmp/points.dat 2>/dev/null
+ 	# rm /tmp/plot.dat 2>/dev/null
+	# echo "Executing the scan on angle..."
+	# for ((jang=0; jang < $n+1; jang++)); do
+		# angle=`echo $jang*$angstep | bc -l`
+		# Calculate the differential cross section
+		# at specific momentum scanning angles
+		# echo ${arr[@]:0:11} $angle
+		# ./bin/antip_scan ${arr[@]:0:11} $angle >> /tmp/points.dat
+		./bin/antip_scan "${arr[@]:0:12}"
+	# done
+	# ./bin/scattering /tmp/points.dat ${arr[@]:0:3} >> /tmp/plot.dat
+	# root -l 'plot.C("/tmp/plot.dat")'
+
 else
 	echo "Please, provide a valid option for scan (11th parameter)."
 	exit 1
