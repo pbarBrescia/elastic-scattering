@@ -67,11 +67,11 @@ void fcn(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag)
    Double_t delta,den1,den2;
    Int_t ndata = (unsigned) x.size();
    for (i=0; i<ndata; i++) {
-   	 den1 = error[i];
-   	 den2 = derivative(x[i],par)*0.2;//(data[i]/csline(x[i],par))*0.2;
-     delta  = (data[i]-csline(x[i],par));// /error[i];
-     // chisq += delta*delta;
-     chisq += delta*delta/(den1*den1+den2*den2);
+   	 // den1 = error[i];
+   	 // den2 = derivative(x[i],par)*0.2;//(data[i]/csline(x[i],par))*0.2;
+     delta  = (data[i]-csline(x[i],par))/error[i];
+     chisq += delta*delta;
+     // chisq += delta*delta/(den1*den1+den2*den2);
    }
    f = chisq;
 }
@@ -84,9 +84,9 @@ int fit_minuit(Double_t Mom, Double_t At, Double_t Zt){
 	string datapath = "data/ca40_1798_err.dat";
 	ifstream in(datapath.c_str(), ifstream::in );
 
-	Mom = mom;
-	At = at;
-	Zt = zt;
+	mom = Mom;
+	at = At;
+	zt = Zt;
 
 	Int_t i = 0;
 
@@ -114,16 +114,14 @@ int fit_minuit(Double_t Mom, Double_t At, Double_t Zt){
    	t.Start();
    	gMinuit->mnexcm("SET ERR", arglist , 1, ierflg);
    	// gMinuit->SetErrorDef(1.);
-   	arglist[0] = 20;
-    arglist[1] = 1.;
     Double_t u0,w0,r0r,r0i,a0r,a0i;
     Double_t stepuw,stepr,stepa;
-    u0 = w0 = 50.0;
-    r0r = r0i = 1.0;
-    a0r = a0i = 0.5;
-    stepuw = u0/100.;
-    stepr = r0r/100.;
-    stepa = a0r/100.;
+    u0 = w0 = 75.0;
+    r0r = r0i = 1.05;
+    a0r = a0i = 0.6;
+    stepuw = u0/1000.;
+    stepr = r0r/1000.;
+    stepa = a0r/1000.;
     
 // Set starting values and step sizes for parameters
    	static Double_t vstart[6] = {u0, w0, r0r, r0i, a0r, a0i}; //if free
@@ -141,14 +139,14 @@ int fit_minuit(Double_t Mom, Double_t At, Double_t Zt){
    	// gMinuit->FixParameter(3);
 
 // Now ready for minimization step
-    arglist[0] = 500;
+    arglist[0] = 200;
     arglist[1] = 1.;
     arglist[2] = 2;
+    gMinuit->mnexcm("MIG", arglist, 1, ierflg);
+    // gMinuit->mnexcm("SET STR", arglist+1, 1,ierflg);
     // gMinuit->mnexcm("SEEK", arglist, 1, ierflg);
-    gMinuit->mnexcm("SET STR", arglist+2, 1,ierflg);
-    gMinuit->mnexcm("MIG", arglist, 2, ierflg);
     // gMinuit->SetMaxIterations(100);
-    gMinuit->mnexcm("MINOS",arglist,1,ierflg);
+    // gMinuit->mnexcm("MINOS",arglist,1,ierflg);
 
 // Print results
     Double_t amin,edm,errdef;
@@ -217,7 +215,8 @@ int fit_minuit(Double_t Mom, Double_t At, Double_t Zt){
 
 	cout << '\a'; // sound at the end
 
-	//c->Print("output.pdf");
+	c->Print("output.pdf");
+	c->SaveAs("results/ca40_1798.C");
 
 	return 0;
 }
