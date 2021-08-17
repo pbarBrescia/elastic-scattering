@@ -18,15 +18,20 @@
 using namespace std;
 
 // Int_t ndata;
-vector<Double_t> x;// = new Double_t[ndata];
-vector<Double_t> data;// = new Double_t[ndata]; 
-vector<Double_t> error;// = new Double_t[ndata];
+vector<Double_t> x;
+vector<Double_t> data;
+vector<Double_t> error;
 Double_t mom, at, zt;
+string opt;
 
 Double_t csline(Double_t x,Double_t *par) {
 	// run an external command and get its output in a TString
-	// TString s = get_stdout(Form("./p_scan.sh -i 599.91 40.078 20.0 40.5 111.0 1.1 1.1 1.25 0.63 %f ang %f",par[0]/*, par[1], par[2], par[3], par[4], par[5]*/,x[0]));
-	TString s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f ang %f",mom,at,zt,par[0],par[1],par[2],par[3],par[4],par[5],x));
+	// dependence on momentum (see Lee-Wong paper)
+	Double_t dep = 1.0;//cosh(sqrt(14.04+mom)-sqrt(14.04))/cosh(sqrt(7.92+mom)-sqrt(7.92));
+	TString s;
+	// TString s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f ang %f",mom,at,zt,par[0]*dep,par[1],par[2],par[2],par[3],par[3],x)); // 4 free param
+	if(opt == "ang") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f",mom,at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),x));
+	else if(opt == "mom") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f",x,at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),999.));
 	// split the TString using space as delimiter
 	// Example taken from here: https://root-forum.cern.ch/t/split-tstring-by-delimeter-in-root-c/18228/2
 	TObjArray *ts = s.Tokenize(" ");
@@ -34,10 +39,15 @@ Double_t csline(Double_t x,Double_t *par) {
 	Double_t ret = atof( ((TObjString *) (ts->At(1)) )->String());
 	return ret;
 }
+
 Double_t csline(Double_t* x,Double_t *par) {
 	// run an external command and get its output in a TString
-	// TString s = get_stdout(Form("./p_scan.sh -i 599.91 40.078 20.0 40.5 111.0 1.1 1.1 1.25 0.63 %f ang %f",par[0]/*, par[1], par[2], par[3], par[4], par[5]*/,x[0]));
-	TString s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f ang %f",mom,at,zt,par[0],par[1],par[2],par[3],par[4],par[5],x[0]));
+	// dependence on momentum (see Lee-Wong paper)
+	Double_t dep = 1.0;//cosh(sqrt(14.04+mom)-sqrt(14.04))/cosh(sqrt(7.92+mom)-sqrt(7.92));
+	TString s;
+	// TString s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f ang %f",mom,at,zt,par[0]*dep,par[1],par[2],par[2],par[3],par[3],x[0])); // 4 free param
+	if(opt == "ang") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f",mom,at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),x[0]));
+	else if(opt == "mom") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f",x[0],at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),999.));
 	// split the TString using space as delimiter
 	// Example taken from here: https://root-forum.cern.ch/t/split-tstring-by-delimeter-in-root-c/18228/2
 	TObjArray *ts = s.Tokenize(" ");
@@ -45,29 +55,6 @@ Double_t csline(Double_t* x,Double_t *par) {
 	Double_t ret = atof( ((TObjString *) (ts->At(1)) )->String());
 	return ret;
 }
-
-// Double_t derivative(Double_t x, Double_t *par, Int_t npar)
-// {
-// 	Double_t h[6] = {0.};
-// 	h[npar] = 1e-4;
-// 	Double_t parplus2[6], parplus[6], parminus[6], parminus2[6];
-// 	for(int j=0; j<6; j++)
-// 	{
-// 		parplus[j] = par[j]+h[j];
-// 		parplus2[j] = par[j]+2*h[j];
-// 		parminus[j] = par[j]-h[j];
-// 		parminus2[j] = par[j]-2*h[j]; 
-// 	}
-// 	Double_t D = (-csline(x,parplus2)+8*csline(x,parplus)-8*csline(x,parminus)+csline(x,parminus2))/(12*h[npar]);
-// 	return D;
-// }
-
-// Double_t derivative(Double_t x, Double_t *par)
-// {
-// 	Double_t h = 1e-4;
-// 	Double_t D = (-csline(x+2*h,par)+8*csline(x+h,par)-8*csline(x-h,par)+csline(x-2*h,par))/(12*h);
-// 	return D;
-// }
 
 void fcn(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag)
 {
@@ -87,40 +74,63 @@ void fcn(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag)
    f = chisq;
 }
 
-Double_t error_prop(Int_t npar, TVirtualFitter *gMinuit, TF1 *func, Double_t *x, Double_t eps = 0.01)
+Double_t error_prop(Int_t npar, TVirtualFitter *gMinuit, TF1 *func, Double_t *xx)
 {
-	Double_t errf = 0.;
-	Double_t covmat[6][6];
+	Double_t errf = 0.,sqerrf = 0.;
 	for(int j = 0; j < npar; j++)
 	{
-		for(int k = 0; k < npar; k++)
-		{
-			covmat[j][k] = gMinuit->GetCovarianceMatrixElement(j,k);
-			errf += (func->GradientPar(j,x,eps))*(func->GradientPar(k,x,eps))*covmat[j][k];
-		}
+		Double_t covmatdiag = gMinuit->GetCovarianceMatrixElement(j,j);
+		// Double_t parerror = gMinuit->GetParError(j);
+		errf += pow((func->GradientPar(j,xx)),2.)*covmatdiag;
+		// sqerrf += errf*errf;
 	}
 
 	return sqrt(errf);
 }
 
-int fit_data(string datafile="data/ca40_1798_err.dat", Double_t Mom = 599.91, Double_t At = 40.078, Double_t Zt = 20.0){
+int fit_data(string datafile="data/ca40_1798_err.dat", Double_t Mom = 599.91, Double_t At = 40.078, Double_t Zt = 20.0, string Opt = "ang"){
 
-	// this is just to record the execution time
+	auto start = chrono::system_clock::now();
+	time_t start_time = chrono::system_clock::to_time_t(start);
+	cout << "Started at " << ctime(&start_time) << endl;
+	// record the execution time
 	TStopwatch t;
 
-	// string datapath = datafile;//"data/ca40_1798_err.dat";
+	// Graphics option
+	// true = plot directly the fit results vs data
+	// false = no plots (default)
+	// WARNING: CHOOSING TRUE HAS GREAT COMPUTATIONAL TIME COSTS!
+	bool WithGraphics = false;
+
+	// Classic option
+	// true = use "Fit" method from TGraph(Errors) (default)
+	// false = minimization with TMinuit and saves
+	//		   the results in a TF1.
+	// N.B: false opt cannot do some things (calculation of 95% CI)
+	bool ClassicFit = true;
+
+	// open the file with exp. data
 	ifstream in(datafile.c_str(), ifstream::in );
 
-	mom = Mom;
+	mom = Mom; // N.B: for option "mom" must be the initial one (e.g. 50.0 -> from 50.0 MeV/c to ...)
 	at = At;
 	zt = Zt;
+	opt = Opt; // ang or mom
 
+	string pp;
+
+	cout << "================ I N F O ===============" << endl;
 	cout << "Data from file " << datafile.c_str() << endl;
-	cout << "p = " << mom << " MeV/c \n"
-		 << "A_t =  " << at << " amu \n"
-		 << "Z_t = " << zt << "\n";
+	if(opt == "mom") pp = "p_start = ";
+	else if(opt == "ang") pp = "p = \t"; 
+	cout << pp.c_str() << mom << " MeV/c \n" 
+		 << "A_t = \t" << at << " amu \n"
+		 << "Z_t = \t" << zt << "\n"
+		 << "Opt = \t" << opt.c_str() << "\n";
+	cout << "========================================" << endl;
 
 	Int_t i = 0;
+	const Int_t npar = 6;
 
 	while(!in.eof())
 	{
@@ -136,99 +146,164 @@ int fit_data(string datafile="data/ca40_1798_err.dat", Double_t Mom = 599.91, Do
 
    	Double_t arglist[10];
 
+   	static vector<Double_t> vstart;
+   	static vector<Double_t> step;
 // Set starting values and step sizes for parameters
-   	static Double_t vstart[6] = {50.0, 50.0, 1.2, 1.2, 0.5, 0.5}; //if free
-   	// static Double_t vstart[6] = {40.5, 111.0, 1.1, 1.1, 0.5, 0.5}; // if fixed
-   	static Double_t step[6] = {0.05 , 0.05 , 0.0012 , 0.012, 0.0005, 0.0005};
-   	
-   	TF1* func = new TF1("func",csline,1.,60.,6);
-   	func->SetParameters(vstart);
-   	func->SetParNames("U0", "W0", "R0r", "R0i", "A0r", "A0i");
+   	if(npar==6)
+   	{
+   	 	vstart={50.0, 50.0, 1.25, 1.25, 0.5, 0.5};
+   	 	step={0.001 , 0.001 , 0.001 , 0.001, 0.001, 0.001};
+   	}
+   	else if(npar==4)
+   	{ 	
+   		vstart={50.0, 50.0, 1.25, 0.5};
+   		step={0.001, 0.001, 0.001, 0.001};
+   	}
 
-   	TVirtualFitter::SetDefaultFitter("Minuit");
-   	TVirtualFitter *gMinuit = TVirtualFitter::Fitter(0,6);
+   	// set x-axis max and min for TF1
+   	Double_t xmax, xmin;
+   	if(opt == "ang") {xmin = 1.; xmax = 180.;} // deg
+   	else if (opt == "mom") {xmin = mom; xmax = 500.;} // MeV/c
 
-   	for(int j = 0; j < 6; j++) gMinuit->SetParameter(j, func->GetParName(j), func->GetParameter(j), 0.001, 0,0);
+   	TF1* func = new TF1("func",csline,xmin,xmax,npar);
+   	func->SetNpx(500); // std are 100
+   	func->SetParameters(&vstart[0]);
+
+   	if(npar==6) func->SetParNames("U0", "W0", "R0r", "R0i", "A0r", "A0i");
+   	else if(npar==4) func->SetParNames("U0", "W0", "R0", "A0");
+
+	func->SetParLimits(4,0.3,0.8);
+   	func->SetParLimits(5,0.3,0.8);
+
+   	// set output filename
+   	string outname = datafile;
+	outname.erase(outname.begin(),outname.begin()+5); // delete the initial part of the path ("data/")
+	outname.erase(outname.end()-4,outname.end()); // delete format (.dat or .txt)
+
+   	// data in TGraphErrors
+   	TGraphErrors * g3 = new TGraphErrors(datafile.c_str(),"%lg %lg %lg");
+	// g3->SetTitle(Form("#bar{p} + <nucleus> @ %.2f MeV/c",mom));
+	func->SetNDF(g3->GetN()-npar);
+
+   	string typeFitter = "Minuit2";
+   	TVirtualFitter *gMinuit = TVirtualFitter::Fitter(0,npar);
+   	Double_t vliminf[6] = {0,0,0,0,0,0};
+	Double_t vlimsup[6] = {0,0,0,0,0,0};
+   	if(typeFitter == "Minuit2")
+   	{
+   		ROOT::Math::MinimizerOptions::SetDefaultMinimizer(typeFitter.c_str());
+   		ROOT::Math::MinimizerOptions::SetDefaultTolerance(1.e-2); // edm_max = 2*tolerance*1.e-3
+   		ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(1); // print only the final result + warnings
+   	}
+   	else if(typeFitter == "Minuit")
+   	{
+	   	TVirtualFitter::SetDefaultFitter(typeFitter.c_str());
+	   	TVirtualFitter* actMinuit = (TVirtualFitter*) (TVirtualFitter::GetFitter());
+   		for(int j = 0; j < npar; j++) actMinuit->SetParameter(j, func->GetParName(j), func->GetParameter(j), (func->GetParameter(j))*3./10., vliminf[j], vlimsup[j]);
+   	}
    	gMinuit->SetFCN(fcn);
-  
-   	arglist[0] = 2;
-   	gMinuit->ExecuteCommand("SET PRINT",arglist,1);
-
-// Now ready for minimization step
-    arglist[0] = 1500;
-    arglist[1] = 1.;
-    gMinuit->ExecuteCommand("MIGRAD", arglist,2);
-
-// Print results
-    Double_t minParams[6], parErrors[6];
-    for(int j = 0; j < 6; j++)
-    {
-    	minParams[j] = gMinuit->GetParameter(j);
-    	parErrors[j] = gMinuit->GetParError(j);
-    }
-
-    double chi2, edm, errdef;
-  	int nvpar, nparx;
-  	gMinuit->GetStats(chi2,edm,errdef,nvpar,nparx);
-
-	TGraphErrors * g3 = new TGraphErrors("data/ca40_1798_err.dat","%lg %lg %lg");
-	g3->SetTitle("#bar{p} + ^{40}Ca @ 179.8 MeV (p=599.91 MeV/c)");
-
-	gStyle->SetOptFit(1);
-	TCanvas * c = new TCanvas("c", "c", 800,800);
-
-	func->SetParameters(minParams);
-	func->SetParErrors(parErrors);
-	func->SetChisquare(chi2);
-	int ndf = x.size()-nvpar;
-	func->SetNDF(ndf);
-
-	TGraphErrors* gerr = new TGraphErrors(150);
-	// cout << endl;
-	// parErrors->as independent parameters!
-	// Must implement the correct formula for
-	// error propagation considering 
-	// correlated parameters:
-	// sigma^2 = sum(i,j) der(i)*der(j)*covmat[i][j] -> TO CHECK!
-	for(int j = 0; j < 150; j++)
+   	
+   	if(ClassicFit) // fit with Fit method of TGraph(Errors)
 	{
-		Double_t xx[1] = {(j+1)*(1./150.)*60.};
-		Double_t ci[1];
-		// Double_t err0 = func->GradientPar(0,xx,0.01)*sqrt(covmat[0][0]);
-		// Double_t err1 = func->GradientPar(1,xx,0.01)*sqrt(covmat[1][1]);
-		// Double_t err2 = func->GradientPar(2,xx,0.01)*sqrt(covmat[2][2]);
-		// Double_t err3 = func->GradientPar(3,xx,0.01)*sqrt(covmat[3][3]);
-		// Double_t err4 = func->GradientPar(4,xx,0.01)*sqrt(covmat[4][4]);
-		// Double_t err5 = func->GradientPar(5,xx,0.01)*sqrt(covmat[5][5]);
-		// Double_t errf = sqrt(err0*err0 + err1*err1 + err2*err2 + err3*err3 + err4*err4 + err5*err5);
-		gerr->SetPoint(j,xx[0],func->Eval(xx[0]));
-		// gMinuit->GetConfidenceIntervals(j,1,xx,ci);
-		Double_t errf = error_prop(6,gMinuit,func,xx);
-		gerr->SetPointError(j,0,errf);
+		TFitResultPtr fitres = g3->Fit(func,"U B S"); // user function and save fit result in the pointer
+   		TFile* fff = new TFile(Form("results/fitres_%s_000.root",outname.c_str()),"recreate","fit results a TFitResultPtr");
+   		fitres->Write("fitresptr");
+   		fff->Close();
+   	}
+   	else // fit with TVirtualFitter using TMinuit
+   	{
+	   	TFile* f = new TFile(Form("results/fit_%s_00.root",outname.c_str()),"recreate","file with fit results");
+	// first two par free, others fixed
+	   	gMinuit->FixParameter(2);
+	   	gMinuit->FixParameter(3);
+	   	gMinuit->FixParameter(4);
+	   	gMinuit->FixParameter(5);
+	  
+	   	arglist[0] = 2; // print level 2 -> progresses
+	   	gMinuit->ExecuteCommand("SET PRINT",arglist,1); 
+	   	// gMinuit->ExecuteCommand("SET STR",arglist,1);
+	   	string min = "MIGRAD";
+
+	// Now ready for minimization step
+	    arglist[0] = 5000; // max iterations
+	    arglist[1] = 1.e-3; // Convergence at EDM < 1e-3 * arglist[1]
+	    cout << "Executing MIGRAD Minimization..." << endl;
+	// minimize the first two par, then release one-by-one 
+	// the others and minimize again
+	    gMinuit->ExecuteCommand(min.c_str(),arglist,2);
+	    gMinuit->ReleaseParameter(2);
+	    gMinuit->ExecuteCommand(min.c_str(),arglist,2);
+	    gMinuit->ReleaseParameter(3);
+	    gMinuit->ExecuteCommand(min.c_str(),arglist,2);
+	    gMinuit->ReleaseParameter(4);
+	    gMinuit->ExecuteCommand(min.c_str(),arglist,2);
+	    gMinuit->ReleaseParameter(5);
+	 	gMinuit->ExecuteCommand(min.c_str(),arglist,2);
+
+	// Print results
+	    Double_t minParams[npar], parErrors[npar];
+	    gMinuit->SetErrorDef(1.); //-> 1-sigma 
+	    for(int j = 0; j < npar; j++)
+	    {
+	    	minParams[j] = gMinuit->GetParameter(j);
+	    	parErrors[j] = gMinuit->GetParError(j);
+	    }
+
+	    double chi2, edm, errdef;
+	  	int nvpar, nparx;
+	  	gMinuit->GetStats(chi2,edm,errdef,nvpar,nparx);
+
+	// save infos of fit in TF1 and TMatrixDSym
+		func->SetParameters(minParams);
+		func->SetParErrors(parErrors);
+		func->SetChisquare(chi2);
+		int ndf = x.size()-nvpar;
+		func->SetNDF(ndf);
+		TMatrixDSym* covmat = new TMatrixDSym(npar,gMinuit->GetCovarianceMatrix()); 
+
+		TGraphErrors* gerr = new TGraphErrors(500);
+
+		if(WithGraphics) // plots (if activated)
+		{
+			gerr->SetTitle(Form("#bar{p} + <nucleus> @ %.2f MeV/c",mom));
+
+			Double_t sig=1.-0.025;
+			Double_t t95 = ROOT::Math::tdistribution_quantile(sig,ndf-1);
+			for(int j = 0; j < 500; j++)
+			{
+				Double_t xx[1] = {(j+1)*(1./500.)*60.};
+				gerr->SetPoint(j,xx[0],func->Eval(xx[0]));
+				Double_t errf = error_prop(npar,gMinuit,func,xx);
+				gerr->SetPointError(j,0,t95*errf);
+			}
+
+			gStyle->SetOptFit(1111);
+			TCanvas* c1 = new TCanvas("c1","c1",800,800);
+			gPad->SetLogy();
+			c1->cd();
+			gerr->GetYaxis()->SetRangeUser(1e-3,1e6);
+			gerr->SetFillStyle(1001);
+			gerr->SetFillColorAlpha(kRed,0.5);
+			gerr->Draw("AE3");
+			g3->SetMarkerStyle(20);
+			g3->SetMarkerSize(0.5);
+			g3->Draw("PSAME");
+
+			c1->SaveAs(Form("results/%s_plots.root",outname.c_str()));
+
+			g3->Write("gdata");
+			gerr->Write("gerr");
+		}  
+
+		cout << '\a'; // sound at the end
+
+		func->Write("fitfct");
+		covmat->Write("covmat");
+		f->Close(); 
 	}
 
-	gPad->SetLogy();
-	c->cd();
-	g3->SetMarkerStyle(20);
-	g3->SetMarkerSize(0.5);
-	g3->Draw("AP");
-	func->Draw("SAME");
-	
-	TCanvas* c1 = new TCanvas("c1","c1",800,800);
-	c1->cd();
-	g3->Draw("AP");
-	gerr->SetFillStyle(1001);
-	gerr->SetFillColor(kRed);
-	gerr->Draw("e3 SAME");
-	// crs->Draw("SAME");
 	t.Stop();
 	t.Print("u");
-
-	cout << '\a'; // sound at the end
-
-	c->Print("output.pdf");
-	c->SaveAs("results/ca40_1798.C");
-	c1->SaveAs("prova.root");
 
 	return 0;
 }

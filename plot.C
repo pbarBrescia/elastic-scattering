@@ -3,7 +3,7 @@ void plot(string input_file = "out50.dat"){
 	TGraph * gStrong = new TGraph(input_file.c_str(), "%lg %*lg %lg");            // 1st and 3rd column
 	TGraph * gCoulomb  = new TGraph(input_file.c_str(), "%lg %*lg %*lg %lg");       // 1st and 4th column
 	TGraph * gSum     = new TGraph(input_file.c_str(), "%lg %*lg %*lg %*lg %lg");  // 1st and 5th column
-	TGraph * gFriedman = new TGraph("data/ca40_1798.dat", "%lg %lg");
+	TGraphErrors * gFriedman = new TGraphErrors("data/c12_1797_err.dat", "%lg %lg %lg");
 
 
 	// line width
