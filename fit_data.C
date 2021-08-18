@@ -21,7 +21,7 @@ using namespace std;
 vector<Double_t> x;
 vector<Double_t> data;
 vector<Double_t> error;
-Double_t mom, at, zt;
+Double_t mom, at, zt, charge;
 string opt;
 
 Double_t csline(Double_t x,Double_t *par) {
@@ -30,8 +30,8 @@ Double_t csline(Double_t x,Double_t *par) {
 	Double_t dep = 1.0;//cosh(sqrt(14.04+mom)-sqrt(14.04))/cosh(sqrt(7.92+mom)-sqrt(7.92));
 	TString s;
 	// TString s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f ang %f",mom,at,zt,par[0]*dep,par[1],par[2],par[2],par[3],par[3],x)); // 4 free param
-	if(opt == "ang") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f",mom,at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),x));
-	else if(opt == "mom") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f",x,at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),999.));
+	if(opt == "ang") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f %f",mom,at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),x,charge));
+	else if(opt == "mom") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f %f",x,at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),999.,charge));
 	// split the TString using space as delimiter
 	// Example taken from here: https://root-forum.cern.ch/t/split-tstring-by-delimeter-in-root-c/18228/2
 	TObjArray *ts = s.Tokenize(" ");
@@ -46,8 +46,8 @@ Double_t csline(Double_t* x,Double_t *par) {
 	Double_t dep = 1.0;//cosh(sqrt(14.04+mom)-sqrt(14.04))/cosh(sqrt(7.92+mom)-sqrt(7.92));
 	TString s;
 	// TString s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f ang %f",mom,at,zt,par[0]*dep,par[1],par[2],par[2],par[3],par[3],x[0])); // 4 free param
-	if(opt == "ang") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f",mom,at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),x[0]));
-	else if(opt == "mom") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f",x[0],at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),999.));
+	if(opt == "ang") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f %f",mom,at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),x[0],charge));
+	else if(opt == "mom") s = get_stdout(Form("./bin/antip_scan %f %f %f %f %f %f %f 1.25 %f %f %s %f %f",x[0],at,zt,par[0]*dep,par[1],par[2],par[3],par[4],par[5],opt.c_str(),999.,charge));
 	// split the TString using space as delimiter
 	// Example taken from here: https://root-forum.cern.ch/t/split-tstring-by-delimeter-in-root-c/18228/2
 	TObjArray *ts = s.Tokenize(" ");
@@ -88,7 +88,7 @@ Double_t error_prop(Int_t npar, TVirtualFitter *gMinuit, TF1 *func, Double_t *xx
 	return sqrt(errf);
 }
 
-int fit_data(string datafile="data/ca40_1798_err.dat", Double_t Mom = 599.91, Double_t At = 40.078, Double_t Zt = 20.0, string Opt = "ang"){
+int fit_data(string datafile="data/ca40_1798_err.dat",Double_t Charge = -1., Double_t Mom = 599.91, Double_t At = 40.078, Double_t Zt = 20.0, string Opt = "ang"){
 
 	auto start = chrono::system_clock::now();
 	time_t start_time = chrono::system_clock::to_time_t(start);
@@ -112,6 +112,7 @@ int fit_data(string datafile="data/ca40_1798_err.dat", Double_t Mom = 599.91, Do
 	// open the file with exp. data
 	ifstream in(datafile.c_str(), ifstream::in );
 
+	charge = Charge; // projectile charge
 	mom = Mom; // N.B: for option "mom" must be the initial one (e.g. 50.0 -> from 50.0 MeV/c to ...)
 	at = At;
 	zt = Zt;
@@ -126,7 +127,8 @@ int fit_data(string datafile="data/ca40_1798_err.dat", Double_t Mom = 599.91, Do
 	cout << pp.c_str() << mom << " MeV/c \n" 
 		 << "A_t = \t" << at << " amu \n"
 		 << "Z_t = \t" << zt << "\n"
-		 << "Opt = \t" << opt.c_str() << "\n";
+		 << "Opt = \t" << opt.c_str() << "\n"
+		 << "q_p = \t" << charge << " e \n";
 	cout << "========================================" << endl;
 
 	Int_t i = 0;
@@ -172,8 +174,12 @@ int fit_data(string datafile="data/ca40_1798_err.dat", Double_t Mom = 599.91, Do
    	if(npar==6) func->SetParNames("U0", "W0", "R0r", "R0i", "A0r", "A0i");
    	else if(npar==4) func->SetParNames("U0", "W0", "R0", "A0");
 
-	func->SetParLimits(4,0.3,0.8);
-   	func->SetParLimits(5,0.3,0.8);
+	func->SetParLimits(0,0.0,5000.);
+	func->SetParLimits(1,0.0,5000.);
+	func->SetParLimits(2,0.8,2.5);
+	func->SetParLimits(3,0.8,2.5);
+	func->SetParLimits(4,0.2,0.8);
+   	func->SetParLimits(5,0.2,0.8);
 
    	// set output filename
    	string outname = datafile;
@@ -185,14 +191,14 @@ int fit_data(string datafile="data/ca40_1798_err.dat", Double_t Mom = 599.91, Do
 	// g3->SetTitle(Form("#bar{p} + <nucleus> @ %.2f MeV/c",mom));
 	func->SetNDF(g3->GetN()-npar);
 
-   	string typeFitter = "Minuit2";
+   	string typeFitter = "Genetic";
    	TVirtualFitter *gMinuit = TVirtualFitter::Fitter(0,npar);
    	Double_t vliminf[6] = {0,0,0,0,0,0};
 	Double_t vlimsup[6] = {0,0,0,0,0,0};
-   	if(typeFitter == "Minuit2")
+   	if(typeFitter != "Minuit")
    	{
    		ROOT::Math::MinimizerOptions::SetDefaultMinimizer(typeFitter.c_str());
-   		ROOT::Math::MinimizerOptions::SetDefaultTolerance(1.e-2); // edm_max = 2*tolerance*1.e-3
+   		ROOT::Math::MinimizerOptions::SetDefaultTolerance(1.); // edm_max = 2*tolerance*1.e-3
    		ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(1); // print only the final result + warnings
    	}
    	else if(typeFitter == "Minuit")
@@ -206,8 +212,14 @@ int fit_data(string datafile="data/ca40_1798_err.dat", Double_t Mom = 599.91, Do
    	if(ClassicFit) // fit with Fit method of TGraph(Errors)
 	{
 		TFitResultPtr fitres = g3->Fit(func,"U B S"); // user function and save fit result in the pointer
+		TF1* fitfct = (TF1*) func->Clone("fitfct");
+		fitfct->SetParameters(fitres->GetParams());
+		fitfct->SetParErrors(fitres->GetErrors());
+		fitfct->SetChisquare(fitres->Chi2());
+		fitfct->SetNDF((g3->GetN())-(func->GetNpar()));
    		TFile* fff = new TFile(Form("results/fitres_%s_000.root",outname.c_str()),"recreate","fit results a TFitResultPtr");
    		fitres->Write("fitresptr");
+   		func->Write("fitfct");
    		fff->Close();
    	}
    	else // fit with TVirtualFitter using TMinuit
@@ -289,7 +301,7 @@ int fit_data(string datafile="data/ca40_1798_err.dat", Double_t Mom = 599.91, Do
 			g3->SetMarkerSize(0.5);
 			g3->Draw("PSAME");
 
-			c1->SaveAs(Form("results/%s_plots.root",outname.c_str()));
+			c1->SaveAs(Form("results/%s_%.3f_plots.root",outname.c_str(),minParams[0]));
 
 			g3->Write("gdata");
 			gerr->Write("gerr");

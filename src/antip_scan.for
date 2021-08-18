@@ -1,41 +1,43 @@
       program antiproton
-c In questo programma e` stata riscritta
-c la sezione d'urto in termini di phase shift.
+      ! This program calculate the cross section
+      ! using the phase shift
 
       implicit double precision (a-h,o-z)
-c parametri della somma finale
+      !! max l quantum number for final sum
       parameter(lsum=120)
-c par. relativi alla dstwav
+      !! DSTWAV subroutine parameters
       parameter(lmax=125,maxstep=1201,mxstep = maxstep+2)
-c h e` lo step radiale elementare (h per maxstep-1 = raggio max).
-c aq e` q in fermi inversi.
+      !! h = radial step
       parameter(h=2.5d-2)
+      !! diff. cross sections (+ eye)
       complex*16 esse,eye,essec,esset
+      !! phases and exponentials
       complex*16 exphase,expsig,esp1,esp2
+      !! auxiliar complex variables
       complex*16 y,yy,ampl,amplc,ampltot
+      !! auxiliar real variables
       real*8 lambda,lsin12,sin122
       real*8 sigma0,sigmai,theta,elast,react
+
       character(3) :: opt
-      character(50) :: filepath
+      character(50) :: filepath,filepath2
 
       dimension onda(maxstep,lmax,2)
       dimension onda2(maxstep,lmax,2)
-      dimension bessel0(maxstep,2),bessel1(maxstep,2)
-      dimension efe(mxstep,3),ege(lmax,2),rr(mxstep)
+      ! dimension efe(mxstep,3),ege(lmax,2),rr(mxstep)
 
-c rr e` usata come raggio in sbr integrale. Successivamente la si 
-c potrebbe usare in piu` routines
-
+      !! optical potential parameters
       common/parametri/r0r,r0i,a0r,a0i,w0d,r0c,r0mt,z0t,r0mp
+      common/useful/charge
+
       common/elle/lm
       common/egendre/ucost,pleg(130)
       common/scatt/amplr(125),ampli(125)
 
-ccc Start of the code added in 2021
-      CHARACTER(100) :: num1char
-      CHARACTER(100) :: num2char
-      CHARACTER(100) :: num3char
-!! Values for opt pot from terminal
+      CHARACTER(100) :: numpchar
+      CHARACTER(100) :: nummtchar
+      CHARACTER(100) :: numztchar
+      !! Values for opt pot from terminal
       CHARACTER(100) :: numu0char
       CHARACTER(100) :: numw0char
       CHARACTER(100) :: numr0rchar
@@ -45,9 +47,10 @@ ccc Start of the code added in 2021
       CHARACTER(100) :: numa0ichar
       CHARACTER(100) :: numthetachar
       CHARACTER(100) :: optchar
-      double precision :: num1
-      double precision :: num2
-      double precision :: num3
+      CHARACTER(100) :: chargechar
+      double precision :: nump
+      double precision :: nummt
+      double precision :: numzt
       double precision :: numu0
       double precision :: numw0
       double precision :: numr0r
@@ -56,16 +59,17 @@ ccc Start of the code added in 2021
       double precision :: numa0r
       double precision :: numa0i
       double precision :: numtheta
-      IF(COMMAND_ARGUMENT_COUNT().NE.12)THEN
-      WRITE(*,*)'ERROR, 12 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
-      !! example ./antip 50.0 40.078 20.0 30 150 1.25 1.25 1.2 0.6 0.5 ang 10.0
+      double precision :: charge;
+      IF(COMMAND_ARGUMENT_COUNT().NE.13)THEN
+      WRITE(*,*)'ERROR, 13 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
+      !! example ./antip 50.0 40.078 20.0 30 150 1.25 1.25 1.2 0.6 0.5 ang 10.0 -1.
       !! This number will be taken by a text file
       STOP
       ENDIF
 
-      CALL GET_COMMAND_ARGUMENT(1,num1char)  
-      CALL GET_COMMAND_ARGUMENT(2,num2char)
-      CALL GET_COMMAND_ARGUMENT(3,num3char)
+      CALL GET_COMMAND_ARGUMENT(1,numpchar)  
+      CALL GET_COMMAND_ARGUMENT(2,nummtchar)
+      CALL GET_COMMAND_ARGUMENT(3,numztchar)
       CALL GET_COMMAND_ARGUMENT(4,numu0char)  
       CALL GET_COMMAND_ARGUMENT(5,numw0char)
       CALL GET_COMMAND_ARGUMENT(6,numr0rchar)
@@ -75,11 +79,12 @@ ccc Start of the code added in 2021
       CALL GET_COMMAND_ARGUMENT(10,numa0ichar)
       CALL GET_COMMAND_ARGUMENT(11,optchar)
       CALL GET_COMMAND_ARGUMENT(12,numthetachar)
+      CALL GET_COMMAND_ARGUMENT(13,chargechar)
       
 
-      READ(num1char,*)num1     ! lab momentum MeV/c              
-      READ(num2char,*)num2     ! target mass
-      READ(num3char,*)num3     ! target charge
+      READ(numpchar,*)nump     ! lab momentum MeV/c              
+      READ(nummtchar,*)nummt     ! target mass
+      READ(numztchar,*)numzt     ! target charge
       READ(numu0char,*)numu0       !! real strength opt pot MeV              
       READ(numw0char,*)numw0       !! img strength opt pot MeV
       READ(numr0rchar,*)numr0r     !! real nuclear radius/A^(1/3) fm
@@ -89,33 +94,26 @@ ccc Start of the code added in 2021
       READ(numa0ichar,*)numa0i     !! img diffusness fm
       READ(optchar,*)opt 		   !! option for scan: 'mom' or 'ang'
       READ(numthetachar,*)numtheta !! angle theta (deg)
+      READ(chargechar,*)charge !! charge of projectile (e)
 
-ccc   End of the code added in 2021
-ccc KEY PARAMETERS ///////////////////////////////////
+      ! KEY PARAMETERS ///////////////////////////////////
+      z0p = charge       !! projectile charge 
 
-c projectile charge
-      z0p = -1.d0 
+      r0mt = nummt       !! mass of target in amu
+      z0t = numzt        !! target Z
+      pmevc = nump       !! lab momentum
 
-c target mass and radius 
-      r0mt = num2 ! old value: 40.078d0 	      !! mass of target in amu
-      z0t = num3  ! old value: 20.d0 		!! Z of target in electron charge
+      ! potential real and imaginary strength, radius/(A^1/3), diffuseness  
+      u0 = numu0
+      w0 = numw0
+      w0d = 0.d0 !!5.98 MeV from Lee-Wong paper (PHYSICAL REVIEW C 97, 054617 (2018))
+      r0r = numr0r 
+      r0i = numr0i
+      r0c = numr0c
+      a0r = numa0r
+      a0i = numa0i
 
-c lab momentum MeV/c (rescalable many times in do 7981, a few lines below)
-      pmevc = num1 ! old value: 50.d0
-
-c potential real and imaginary strength, radius/(A^1/3), diffuseness  
-      u0 = numu0 				!! old value: 30 MeV
-      w0 = numw0 				!! old value: 150 MeV
-      w0d = 0.d0 			!! old value: 0
-      r0r = numr0r			!! old value: 1.25 
-      r0i = numr0i			!! old value: 1.25
-      r0c = numr0c 			!! old value:1.2
-      a0r = numa0r			!! old value: 0.6
-      a0i = numa0i			!! old value: 0.5
-
-      theta = numtheta 		!! angle theta (deg)
-
-      ! opt = 'ang'
+      theta = numtheta
 
       if (opt.ne.'ang'.and.opt.ne.'mom') then
       write(*,*)'ERROR, PROVIDE A VALID OPTION FOR SCAN'
@@ -124,10 +122,12 @@ c potential real and imaginary strength, radius/(A^1/3), diffuseness
       end if
 
       filepath="./results/int_cs.dat"
-ccc END PARAMETERS
-      if(opt.eq.'mom') open(23,file=filepath,access='append') 		!! save INTegral Cross Section in .dat file
+      ! END PARAMETERS ///////////////////////////////////
 
-c inizializzazione (in parte interattiva in parte no)
+      !! save INTegral Cross Section in .dat file
+      if(opt.eq.'mom') open(23,file=filepath,access='append')
+
+      ! initialization
       call iniziale
       int = 1200
       eye = dcmplx(0.d0,1.d0)
@@ -135,10 +135,16 @@ c inizializzazione (in parte interattiva in parte no)
       amu  =  931.494
       hxc  =  197.327
       esq  =  1.4399764
-      r0mu = 938.27*r0mt*amu/(r0mt*amu+938.27)
+      if (charge.eq.-1.0) then 
+      mass_proj = 938.27
+      else if (charge.eq.0.0) then 
+      mass_proj =  939.565
+      end if
+      r0mu = mass_proj*r0mt*amu/(r0mt*amu+mass_proj)
+      !! Sommerfeld parameter
       lambda = esq*z0t*z0p*r0mu/(hxc*pmevc)
 
-c momentum is converted into 1/fm
+      ! momentum is converted into 1/fm
       pfm = pmevc/hxc
 
       aq = pfm
@@ -146,76 +152,85 @@ c momentum is converted into 1/fm
       aklon = aq                                      !! k longitudinal
       akp = sqrt(aklon*aklon+aktr*aktr)               !! |k|
 
-	  if(opt.eq.'ang') then 	!! only angle theta, no cycle!
-	  itmin = 1
-	  itmax = 1
-	  else if(opt.eq.'mom') then 	!! cycle on theta is necessary for calculate dstwav4 (?)
-	  itmin = 0
-	  itmax = 500
-	  end if
+	if(opt.eq.'ang') then
+      !! only angle theta, no cycle!
+	     itmin = 1
+	     itmax = 1
+	else if(opt.eq.'mom') then
+      !! cycle on theta needed
+           itmin = 0
+	     itmax = 500
+	end if
 
-	  !! start do cycle on angle
+	!! start do cycle on angle
       do 7345, ittt = itmin,itmax
-      	 if(opt.eq.'ang') then
+         if(opt.eq.'ang') then
          utheta = theta*pi/180.d0
          else if (opt.eq.'mom') then  
-         utheta = ittt*(1.d0/dble(itmax))*pi 	!! theta from 0 to pi rad ( step = (1/itmax)*pi )
+      !! theta from 0 to pi rad ( step = (1/itmax)*pi )
+         utheta = ittt*(1.d0/dble(itmax))*pi
          end if
-         ucost = cos(utheta) 					!! cos(theta) for legendre polynomial (see legendre subroutine)
-c risoluzione delle equazioni radiali (in "onda")
+      !! cos(theta) for Legendre polynomial
+         ucost = cos(utheta)
+      ! solve radial eqn (save in "onda")
          call dstwav4(onda,maxstep,u0,w0,z0p,akp)    
-c calcolo dei polinomi di legendre per un dato theta (ut in unita` pi)
-	     call legendre
+      ! Legendre polynomial for a given theta
+	   call legendre
 
-	     esse = dcmplx(0.d0,0.d0)
-	     essec = dcmplx(0.d0,0.d0)
-	     y = cgamma(dcmplx(1,lambda))
-	     sigma0 = atan2(dimag(y),dreal(y))
-	     ! print *,y,sigma0
-	     ! start do cyle on angular momentum quantum number
-	     do 344 ik=1,lsum
-         	! print *,i,amplr(i),ampli(i)
-	      	yy = cgamma(dcmplx(ik,lambda))
-	      	sigmai = atan2(dimag(yy),dreal(yy))
-	      	expsig = cdexp(2*dcmplx(0.d0,sigmai)) 	!! phase due to Coulomb distortion
-	      	ampl = dcmplx(amplr(ik),ampli(ik))
-	      	esse=esse+(2*ik-1)*expsig*(ampl-1.d0)*pleg(ik) 
-	      	sig=sig+(2*ik-1)*(-ampli(ik))
-344   	 continue
-c fine do L 
-c questa è l'ampiezza che al quadrato da la sigma diff senza coefficienti
-	     esse=-esse*eye*0.5d0/akp
+	   esse = dcmplx(0.d0,0.d0)
+	   essec = dcmplx(0.d0,0.d0)
+	   y = cgamma(dcmplx(1,lambda))
+	   sigma0 = atan2(dimag(y),dreal(y))
+	   ! print *,y,sigma0
 
-	     lsin12 = log(sin(utheta/2.d0)) 
-	     sin122 = (sin(utheta/2.d0))**2
-	     esp1 = -2.d0*dcmplx(0.d0,lambda)*lsin12 	!! Coulomb phase 1
-	     esp2 = 2.d0*dcmplx(0.d0,sigma0) 			!! Coulomb phase 2
-	     exphase = cdexp(esp1+esp2)
-	     essec = -(lambda*exphase)/(2.d0*akp*sin122) !! Coulomb scattering amplitude
+	!! start do cyle on angular momentum quantum number
+	   do 344 ik=1,lsum
+         ! print *,i,amplr(i),ampli(i)
+	    	yy = cgamma(dcmplx(ik,lambda))
+	     	sigmai = atan2(dimag(yy),dreal(yy))
+            !! phase due to Coulomb distortion
+	     	expsig = cdexp(2*dcmplx(0.d0,sigmai))
+	     	ampl = dcmplx(amplr(ik),ampli(ik))
+	     	esse=esse+(2*ik-1)*expsig*(ampl-1.d0)*pleg(ik) 
+	     	sig=sig+(2*ik-1)*(-ampli(ik))
+344      continue
+      !! end do on ik 
+	   esse=-esse*eye*0.5d0/akp
 
-	     ! total amplitude (nuclear+coulomb)
-	     esset = esse+essec
-	 ! different indentation necessary
-	 ! fortran is a special child...
+	   lsin12 = log(sin(utheta/2.d0)) 
+	   sin122 = (sin(utheta/2.d0))**2
+      !! Coulomb phase 1
+	   esp1 = -2.d0*dcmplx(0.d0,lambda)*lsin12
+      !! Coulomb phase 2
+	   esp2 = 2.d0*dcmplx(0.d0,sigma0)
+      !! Total Coulomb phase
+	   exphase = cdexp(esp1+esp2)
+	   essec = -(lambda*exphase)/(2.d0*akp*sin122) !! Coulomb scattering amplitude
+
+	!! total amplitude (nuclear+coulomb)
+	   esset = esse+essec
+         dsigma = 10.d0*cdabs(esset)**2
 	 if(utheta.ne.0) then
 	 if(opt.eq.'ang') then
-	 print *,utheta,dreal(esse),dimag(esse),dreal(esset),dimag(esset)
+	 ! print *,utheta,dreal(esse),dimag(esse),dreal(esset),dimag(esset)
+       print *,utheta,dsigma
 	 end if
 	 end if
 7345  continue
-c fine do angoli
-	  if(opt.eq.'mom') then
-		 elast = 0.d0
+      !! end do on ittt
+	if(opt.eq.'mom') then
+	     elast = 0.d0
 	     react = 0.d0
-		 do 2323, mm=1,lsum
-			 elast = elast + (2*mm-1)*((amplr(mm)-1.d0)**2+ampli(mm)**2)
-	    	 react = react + (2*mm-1)*(1.d0-amplr(mm)**2-ampli(mm)**2)
-2323  	 continue	
-		 elast = elast*pi/akp**2
-	     react = react*pi/akp**2
-		 sigsum = elast+react
-		 if (opt.eq.'mom') write(23,*)pmevc,elast,react,sigsum
-	  end if  
+	   do 2323, mm=1,lsum
+	      elast = elast + (2*mm-1)*((amplr(mm)-1.d0)**2+ampli(mm)**2)
+	      react = react + (2*mm-1)*(1.d0-amplr(mm)**2-ampli(mm)**2)
+            ! print *,mm,(2*mm-1)*(1.d0-amplr(mm)**2-ampli(mm)**2)
+2323     continue	
+	   elast = 10*elast*pi/akp**2
+	   react = 10*react*pi/akp**2
+	   sigsum = elast+react
+	   if (opt.eq.'mom') print *,pmevc,react !write(23,*)pmevc,elast,react,sigsum
+	end if  
 
       contains
       complex*16 recursive function cgamma(z) result(ans)
@@ -315,9 +330,11 @@ c dstwav in 1200 step.
 
       COMMON /CONST/ PI,HXC,FM0,ESQ
       common/parametri/r0r,r0i,a0r,a0i,w0d,r0c,r0mt,z0t,r0mp
+      common/useful/charge
       common/elle/lm
 C
-      DATA PIMASS,PMASS,EMASS/.1498 ,1.00727647,0.00054858/ !! Masses of pion, proton and electron in amu -> old value: 1.007
+      ! DATA PIMASS,PMASS,EMASS/.1498 ,1.00727647,0.00054858/ !! Masses of pion, proton and electron in amu -> old value: 1.007
+      data pmass,nmass/1.00727647,1.008664916/ !! Masses of proton and neutron
 C
 
       anfex = 1.d0
@@ -331,10 +348,14 @@ c nella chiamata della sbr tutte le "O" sono sost. da "0",
 c e altri "0" sono aggiunti per distinguere le stesse variabili 
 c nel programma principale e nella sbr
 
+      if (charge.eq.-1.0) then 
       r0mp = pmass
-      r0mu = num2*pmass/(num2+pmass)
+      else if (charge.eq.0.0) then 
+      r0mp = nmass
+      end if
+      r0mu = nummt*r0mp/(nummt+r0mp)
       l0max = lm+1
-      r0max = 30.d0
+      r0max = 100.d0
       irdim = maxstep
       h0 = r0max/(irdim-1)
       nonloc = 0

@@ -125,7 +125,7 @@ c momentum is converted into 1/fm
       aklon = aq                                      !! k longitudinal
       akp = sqrt(aklon*aklon+aktr*aktr)               !! |k|
 
-      itmax = 2000
+      itmax = 500
       ! start do cycle on angles
       do 7345, ittt = 0,itmax
          utheta = ittt*(1.d0/dble(itmax))*pi          !! theta from 0 to pi rad ( step = (1/itmax)*pi )  
