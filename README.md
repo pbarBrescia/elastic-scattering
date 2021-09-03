@@ -1,8 +1,6 @@
 # Elastic Scattering
 
-Antiproton elastic scattering cross section using partial waves
-
-... more explanation here (ask Andrea)...
+Antiproton elastic scattering and annihilation cross section using partial waves
 
 ## Download and compile
 
