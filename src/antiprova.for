@@ -25,79 +25,88 @@ c rr e` usata come raggio in sbr integrale. Successivamente la si
 c potrebbe usare in piu` routines
 
       common/parametri/r0r,r0i,a0r,a0i,w0d,r0c,r0mt,z0t,r0mp
+      common/useful/charge
       common/elle/lm
       common/egendre/ucost,pleg(130)
       common/scatt/amplr(125),ampli(125)
 
 ccc Start of the code added in 2021
-      CHARACTER(100) :: num1char
-      CHARACTER(100) :: num2char
-      CHARACTER(100) :: num3char
+      CHARACTER(100) :: numpchar
+      CHARACTER(100) :: nummtchar
+      CHARACTER(100) :: numztchar
 !! Values for opt pot from terminal
       CHARACTER(100) :: numu0char
       CHARACTER(100) :: numw0char
+      CHARACTER(100) :: numw0dchar
       CHARACTER(100) :: numr0rchar
       CHARACTER(100) :: numr0ichar
       CHARACTER(100) :: numr0cchar
       CHARACTER(100) :: numa0rchar
       CHARACTER(100) :: numa0ichar
-      double precision :: num1
-      double precision :: num2
-      double precision :: num3
+      CHARACTER(100) :: chargechar
+      double precision :: nump
+      double precision :: nummt
+      double precision :: numzt
       double precision :: numu0
       double precision :: numw0
+      double precision :: numw0d
       double precision :: numr0r
       double precision :: numr0i
       double precision :: numr0c
       double precision :: numa0r
       double precision :: numa0i
-      IF(COMMAND_ARGUMENT_COUNT().NE.10)THEN
-      WRITE(*,*)'ERROR, 10 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
-      !! example ./antip 50.0 40.078 20.0 30 150 1.25 1.25 1.2 0.6 0.5
+      double precision :: charge
+      IF(COMMAND_ARGUMENT_COUNT().NE.12)THEN
+      WRITE(*,*)'ERROR, 12 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
+      !! example ./antip 50.0 40.078 20.0 30 150 0 1.25 1.25 1.2 0.6 0.5 -1.0
       !! This number will be taken by a text file
       STOP
       ENDIF
 
-      CALL GET_COMMAND_ARGUMENT(1,num1char)  
-      CALL GET_COMMAND_ARGUMENT(2,num2char)
-      CALL GET_COMMAND_ARGUMENT(3,num3char)
+      CALL GET_COMMAND_ARGUMENT(1,numpchar)  
+      CALL GET_COMMAND_ARGUMENT(2,nummtchar)
+      CALL GET_COMMAND_ARGUMENT(3,numztchar)
       CALL GET_COMMAND_ARGUMENT(4,numu0char)  
       CALL GET_COMMAND_ARGUMENT(5,numw0char)
-      CALL GET_COMMAND_ARGUMENT(6,numr0rchar)
-      CALL GET_COMMAND_ARGUMENT(7,numr0ichar)  
-      CALL GET_COMMAND_ARGUMENT(8,numr0cchar)
-      CALL GET_COMMAND_ARGUMENT(9,numa0rchar)
-      CALL GET_COMMAND_ARGUMENT(10,numa0ichar)
+      CALL GET_COMMAND_ARGUMENT(6,numw0dchar)
+      CALL GET_COMMAND_ARGUMENT(7,numr0rchar)
+      CALL GET_COMMAND_ARGUMENT(8,numr0ichar)  
+      CALL GET_COMMAND_ARGUMENT(9,numr0cchar)
+      CALL GET_COMMAND_ARGUMENT(10,numa0rchar)
+      CALL GET_COMMAND_ARGUMENT(11,numa0ichar)
+      CALL GET_COMMAND_ARGUMENT(12,chargechar)
       
 
-      READ(num1char,*)num1     ! lab momentum MeV/c              
-      READ(num2char,*)num2     ! target mass
-      READ(num3char,*)num3     ! target charge
+      READ(numpchar,*)nump     ! lab momentum MeV/c              
+      READ(nummtchar,*)nummt     ! target mass
+      READ(numztchar,*)numzt     ! target charge
       READ(numu0char,*)numu0       !! real strength opt pot MeV              
       READ(numw0char,*)numw0       !! img strength opt pot MeV
+      READ(numw0dchar,*)numw0d       !! surface term opt pot MeV
       READ(numr0rchar,*)numr0r     !! real nuclear radius/A^(1/3) fm
       READ(numr0ichar,*)numr0i     !! img nuclear radius/A^(1/3) fm              
       READ(numr0cchar,*)numr0c     !! Coulomb radius/A^(1/3) fm              
       READ(numa0rchar,*)numa0r     !! real diffusness fm
       READ(numa0ichar,*)numa0i     !! img diffusness fm
+      READ(chargechar,*)charge     !! charge of projectile
 
 ccc   End of the code added in 2021
 ccc KEY PARAMETERS ///////////////////////////////////
 
 c projectile charge
-      z0p = -1.d0 
+      z0p = charge 
 
 c target mass and radius 
-      r0mt = num2 ! old value: 40.078d0 	      !! mass of target in amu
-      z0t = num3  ! old value: 20.d0 		!! Z of target in electron charge
+      r0mt = nummt ! old value: 40.078d0 	      !! mass of target in amu
+      z0t = numzt  ! old value: 20.d0 		!! Z of target in electron charge
 
 c lab momentum MeV/c (rescalable many times in do 7981, a few lines below)
-      pmevc = num1 ! old value: 50.d0
+      pmevc = nump ! old value: 50.d0
 
 c potential real and imaginary strength, radius/(A^1/3), diffuseness  
       u0 = numu0 				!! old value: 30 MeV
       w0 = numw0 				!! old value: 150 MeV
-      w0d = 0.d0 			!! old value: 0
+      w0d = numw0d 			!! old value: 0
       r0r = numr0r			!! old value: 1.25 
       r0i = numr0i			!! old value: 1.25
       r0c = numr0c 			!! old value:1.2
@@ -114,7 +123,12 @@ c inizializzazione (in parte interattiva in parte no)
       amu  =  931.494 								  !! Atomic Mass Unit (in MeV/c^2)
       hxc  =  197.327 								  !! reduced Planck constant x speed of light 
       esq  =  1.4399764 							  !! electron charge squared (in MeV x fm)
-      r0mu = 938.27*r0mt*amu/(r0mt*amu+938.27) 		  !! reduced mass of the system
+      if (charge.eq.-1.0) then 
+      mass_proj = 938.27
+      else if (charge.eq.0.0) then 
+      mass_proj =  939.565
+      end if							  
+      r0mu = mass_proj*r0mt*amu/(r0mt*amu+mass_proj) 		  !! reduced mass of the system
       lambda = esq*z0t*z0p*r0mu/(hxc*pmevc) 		  !! Sommerfeld parameter
 
 c momentum is converted into 1/fm
@@ -161,9 +175,9 @@ c questa è l'ampiezza che al quadrato da la sigma diff senza coefficienti
 
       esset = esse+essec 								!! Total elastic amplitude
 
-      if(utheta.ne.0)then
-      print *,utheta,dreal(esse),dimag(esse),dreal(esset),dimag(esset)
-      end if
+      ! if(utheta.ne.0)then
+      print*,utheta,dreal(esse),dimag(esse)!!,dreal(esset),dimag(esset)
+      ! end if
 7345  continue
 c fine do angoli
 
@@ -267,9 +281,11 @@ c dstwav in 1200 step.
 
       COMMON /CONST/ PI,HXC,FM0,ESQ
       common/parametri/r0r,r0i,a0r,a0i,w0d,r0c,r0mt,z0t,r0mp
+      common/useful/charge
       common/elle/lm
 C
-      DATA PIMASS,PMASS,EMASS/.1498 ,1.00727647,0.00054858/ !! Masses of pion, proton and electron in amu -> old value: 1.007
+      ! DATA PIMASS,PMASS,EMASS/.1498 ,1.00727647,0.00054858/ !! Masses of pion, proton and electron in amu -> old value: 1.007
+      data pmass,nmass/1.00727647,1.008664916/ !! Masses of proton and neutron
 C
 
       anfex = 1.d0
@@ -283,10 +299,14 @@ c nella chiamata della sbr tutte le "O" sono sost. da "0",
 c e altri "0" sono aggiunti per distinguere le stesse variabili 
 c nel programma principale e nella sbr
 
+      if (charge.eq.-1.0) then 
       r0mp = pmass
-      r0mu = num2*pmass/(num2+pmass)
+      else if (charge.eq.0.0) then 
+      r0mp = nmass
+      end if
+      r0mu = nummt*r0mp/(nummt+r0mp)
       l0max = lm+1
-      r0max = 30.d0
+      r0max = 100.d0
       irdim = maxstep
       h0 = r0max/(irdim-1)
       nonloc = 0

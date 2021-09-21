@@ -3,7 +3,7 @@ void plot(string input_file = "out50.dat"){
 	TGraph * gStrong = new TGraph(input_file.c_str(), "%lg %*lg %lg");            // 1st and 3rd column
 	TGraph * gCoulomb  = new TGraph(input_file.c_str(), "%lg %*lg %*lg %lg");       // 1st and 4th column
 	TGraph * gSum     = new TGraph(input_file.c_str(), "%lg %*lg %*lg %*lg %lg");  // 1st and 5th column
-	TGraphErrors * gFriedman = new TGraphErrors("data/c12_1797_err.dat", "%lg %lg %lg");
+	// TGraphErrors * gFriedman = new TGraphErrors("data/c12_1797_err.dat", "%lg %lg %lg");
 
 
 	// line width
@@ -11,8 +11,8 @@ void plot(string input_file = "out50.dat"){
 	gCoulomb->SetLineWidth(linew);
 	gStrong->SetLineWidth(linew);
 	gSum->SetLineWidth(linew);
-	gFriedman->SetMarkerSize(1);
-	gFriedman->SetMarkerStyle(kPlus);
+	// gFriedman->SetMarkerSize(1);
+	// gFriedman->SetMarkerStyle(kPlus);
 
 	// colors
 	gCoulomb->SetLineColor(kGreen-2);
@@ -20,7 +20,7 @@ void plot(string input_file = "out50.dat"){
 	gStrong->SetLineColor(kRed-3);
 	gStrong->SetLineStyle(2);
 	gSum->SetLineColor(kBlack);
-	gFriedman->SetMarkerColor(9);
+	// gFriedman->SetMarkerColor(9);
 
 	// multigraph
 	TMultiGraph * mg = new TMultiGraph();
@@ -37,9 +37,9 @@ void plot(string input_file = "out50.dat"){
 	TCanvas *  c = new TCanvas();
 	c->SetLogy();
 	mg->Draw("AL");
-	mg->GetYaxis()->SetTitle("dsigma/domega amplitudes");	
-	mg->GetXaxis()->SetTitle("Theta (degrees)");
+	mg->GetYaxis()->SetTitle("d#sigma/d#Omega");	
+	mg->GetXaxis()->SetTitle("#theta (deg)");
 	leg->Draw();
-	gFriedman->Draw("SAME P");
+	// gFriedman->Draw("SAME P");
 	// c->SaveAs("fig/fig.pdf");
 }

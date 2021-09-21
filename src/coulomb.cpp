@@ -1,7 +1,7 @@
 #include <iostream> //libreria per la stampa su schermo e lettura da tastiera
 #include <fstream> // libreria per la stampa o lettura su/da file
 #include <cmath>
-#include<cstdlib>
+#include <cstdlib>
 #include <cstdio> //input/output in stile C
 #include <cstring>
 #include <ctime>
@@ -72,16 +72,18 @@ int main(int argc, char* argv[]){
 
   // Code added in 2021 to use command line arguments
     if (argc < 2) {
-        std::cerr << "Usage:   " << argv[0] << " [input data file] [pbar lab momentum] [target mass] [target charge]" << std::endl;
-        std::cerr << "Example: " << argv[0] << " input.dat 50.0 40.078 20.0" << std::endl;
+        std::cerr << "Usage:   " << argv[0] << " [input data file] [pbar lab momentum] [target mass] [target charge] [proj charge]" << std::endl;
+        std::cerr << "Example: " << argv[0] << " input.dat 50.0 40.078 20.0 -1.0" << std::endl;
         return 1;
     }
 
   string input_data_file(argv[1]);
+  // cout << input_data_file.c_str() << endl;
 
   double pbar_lab_p    = atof(argv[2]);
   double target_mass   = atof(argv[3]);
   double target_charge = atof(argv[4]);
+  double proj_charge = atof(argv[5]);
 
   //attenzione: l'unità di misura di 1/ak è la stessa dell'ampiezza finale
   //lambda è adimensionale
@@ -95,15 +97,20 @@ int main(int argc, char* argv[]){
   double pmc = pbar_lab_p ;// old value: 50; //p in mev/c
   double zeta = target_charge ; // old value: 20.;
   double mass = target_mass * 931.494; // old value: 40.078 , 931.78 = u.a.m.
+  double zp = proj_charge;
+  // double zp = -1.0;
   double ak = pmc/197.327; // k in 1/fm, old value: 197.32
   //cm effects removed for coherence with the other program
   //  double mcorrection = (mass*1.)/(mass+1.);
   //double lambda = -6.85*zeta*mcorrection/pmc;
-  double mu = mass*938.27/(938.27+mass); // MeV
+  double mproj;
+  if(zp == -1.0) mproj = 938.27;
+  else if (zp == 0.0) mproj = 939.565;
+  double mu = mass*mproj/(mproj+mass); // MeV
   double esq = 1.4399764; // MeV*fm
   double hxc = 197.327; // MeV*fm
   //double lambda = -6.85*zeta/pmc;
-  double lambda = -esq*mu*zeta/(hxc*pmc);
+  double lambda = zp*esq*mu*zeta/(hxc*pmc);
 
   //cout << lambda << " lambda\n";
 
@@ -121,8 +128,9 @@ int main(int argc, char* argv[]){
  
   //cout << amplitude1 << " " << amplitude2 << " " << amplitude3 << "\n";
 
-  int nstep = 500;
+  int nstep=500;
   double step = (double) 1./nstep;
+  // cout << step << endl;
 
   for (int itheta = 0; itheta<nstep; itheta++){
 
@@ -147,8 +155,9 @@ int main(int argc, char* argv[]){
     //coulomb differential sigma (fm^2/sr)
     double dsigmaomega = aaa*aaa;
 
-    double nucleartheta=0, rnuclear=0, inuclear=0, rtot=0, itot=0;
-    in1 >> nucleartheta >> rnuclear >> inuclear >> rtot >> itot;
+    double nucleartheta = 0, rnuclear = 0, inuclear = 0; //, rtot=0, itot=0;
+    in1 >> nucleartheta >> rnuclear >> inuclear; //>> rtot >> itot;
+    // cout << nucleartheta << rnuclear << inuclear << endl;
 
     double dsigmanuclear = rnuclear*rnuclear + inuclear*inuclear;
 
@@ -161,7 +170,6 @@ int main(int argc, char* argv[]){
     cout << theta*(180./M_PI) << " " << nucleartheta*(180./M_PI) 
 	 << " " << 10.*dsigmanuclear << " " 
 	 << 10.*dsigmaomega << " " << 10.*dsigmatot << "\n";
-	 //<< atoti*atoti/imag(amplitude*amplitude) << " " << 10*dsigmatot << "\n";
    // 10* -> conversion to millibarn
   }
 

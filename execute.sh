@@ -16,4 +16,4 @@ echo "Compiling the code..."
 echo "Executing the code..."
 ./run.sh "$1" > "results/$2"
 echo "Plotting the results..."
-root -l 'plot.C("'"results/$2"'")'
+root -l 'plot.C("'results/$2'")'

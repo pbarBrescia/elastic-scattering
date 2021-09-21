@@ -4,7 +4,7 @@
 
       implicit double precision (a-h,o-z)
       !! max l quantum number for final sum
-      parameter(lsum=120)
+      parameter(lsum=120) !! old value: 120
       !! DSTWAV subroutine parameters
       parameter(lmax=125,maxstep=1201,mxstep = maxstep+2)
       !! h = radial step
@@ -40,6 +40,7 @@
       !! Values for opt pot from terminal
       CHARACTER(100) :: numu0char
       CHARACTER(100) :: numw0char
+      CHARACTER(100) :: numw0dchar
       CHARACTER(100) :: numr0rchar
       CHARACTER(100) :: numr0ichar
       CHARACTER(100) :: numr0cchar
@@ -53,6 +54,7 @@
       double precision :: numzt
       double precision :: numu0
       double precision :: numw0
+      double precision :: numw0d
       double precision :: numr0r
       double precision :: numr0i
       double precision :: numr0c
@@ -60,9 +62,9 @@
       double precision :: numa0i
       double precision :: numtheta
       double precision :: charge;
-      IF(COMMAND_ARGUMENT_COUNT().NE.13)THEN
-      WRITE(*,*)'ERROR, 13 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
-      !! example ./antip 50.0 40.078 20.0 30 150 1.25 1.25 1.2 0.6 0.5 ang 10.0 -1.
+      IF(COMMAND_ARGUMENT_COUNT().NE.14)THEN
+      WRITE(*,*)'ERROR, 14 COMMAND-LINE ARGUMENTS REQUIRED, STOPPING'
+      !! example ./antip 50.0 40.078 20.0 30 150 6 1.25 1.25 1.2 0.6 0.5 ang 10.0 -1.
       !! This number will be taken by a text file
       STOP
       ENDIF
@@ -72,14 +74,15 @@
       CALL GET_COMMAND_ARGUMENT(3,numztchar)
       CALL GET_COMMAND_ARGUMENT(4,numu0char)  
       CALL GET_COMMAND_ARGUMENT(5,numw0char)
-      CALL GET_COMMAND_ARGUMENT(6,numr0rchar)
-      CALL GET_COMMAND_ARGUMENT(7,numr0ichar)  
-      CALL GET_COMMAND_ARGUMENT(8,numr0cchar)
-      CALL GET_COMMAND_ARGUMENT(9,numa0rchar)
-      CALL GET_COMMAND_ARGUMENT(10,numa0ichar)
-      CALL GET_COMMAND_ARGUMENT(11,optchar)
-      CALL GET_COMMAND_ARGUMENT(12,numthetachar)
-      CALL GET_COMMAND_ARGUMENT(13,chargechar)
+      CALL GET_COMMAND_ARGUMENT(6,numw0dchar)
+      CALL GET_COMMAND_ARGUMENT(7,numr0rchar)
+      CALL GET_COMMAND_ARGUMENT(8,numr0ichar)  
+      CALL GET_COMMAND_ARGUMENT(9,numr0cchar)
+      CALL GET_COMMAND_ARGUMENT(10,numa0rchar)
+      CALL GET_COMMAND_ARGUMENT(11,numa0ichar)
+      CALL GET_COMMAND_ARGUMENT(12,optchar)
+      CALL GET_COMMAND_ARGUMENT(13,numthetachar)
+      CALL GET_COMMAND_ARGUMENT(14,chargechar)
       
 
       READ(numpchar,*)nump     ! lab momentum MeV/c              
@@ -87,6 +90,7 @@
       READ(numztchar,*)numzt     ! target charge
       READ(numu0char,*)numu0       !! real strength opt pot MeV              
       READ(numw0char,*)numw0       !! img strength opt pot MeV
+      READ(numw0dchar,*)numw0d       !! img strength surface opt pot MeV
       READ(numr0rchar,*)numr0r     !! real nuclear radius/A^(1/3) fm
       READ(numr0ichar,*)numr0i     !! img nuclear radius/A^(1/3) fm              
       READ(numr0cchar,*)numr0c     !! Coulomb radius/A^(1/3) fm              
@@ -106,7 +110,7 @@
       ! potential real and imaginary strength, radius/(A^1/3), diffuseness  
       u0 = numu0
       w0 = numw0
-      w0d = 0.d0 !!5.98 MeV from Lee-Wong paper (PHYSICAL REVIEW C 97, 054617 (2018))
+      w0d = numw0d !!5.98 MeV from Lee-Wong paper (PHYSICAL REVIEW C 97, 054617 (2018))
       r0r = numr0r 
       r0i = numr0i
       r0c = numr0c
@@ -121,7 +125,7 @@
       stop
       end if
 
-      filepath="./results/int_cs.dat"
+      filepath="./results/pwcontrib/pwcontrib_.dat"
       ! END PARAMETERS ///////////////////////////////////
 
       !! save INTegral Cross Section in .dat file
@@ -224,7 +228,11 @@
 	   do 2323, mm=1,lsum
 	      elast = elast + (2*mm-1)*((amplr(mm)-1.d0)**2+ampli(mm)**2)
 	      react = react + (2*mm-1)*(1.d0-amplr(mm)**2-ampli(mm)**2)
-            ! print *,mm,(2*mm-1)*(1.d0-amplr(mm)**2-ampli(mm)**2)
+            fctel = (2*mm-1)*((amplr(mm)-1.d0)**2+ampli(mm)**2)
+            fctre = (2*mm-1)*(1.d0-amplr(mm)**2-ampli(mm)**2)
+            elastl = fctel*10*pi/akp**2
+            reactl = fctre*10*pi/akp**2
+            if(DMOD(pmevc,5.d0).eq.0)write(23,*)pmevc,mm,elastl,reactl
 2323     continue	
 	   elast = 10*elast*pi/akp**2
 	   react = 10*react*pi/akp**2
