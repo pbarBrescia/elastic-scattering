@@ -1,0 +1,24 @@
+- Real:
+    low: 40.
+    high: 100.
+    name: 'W'
+- Real:
+    low: 40.
+    high: 100.
+    name: 'V'
+- Real:
+    low: 0.
+    high: 2.
+    name: 'r1'
+- Real:
+    low: 0.
+    high: 2.
+    name: 'r2'
+- Real:
+    low: 0.5
+    high: 1.5
+    name: 'a1'
+- Real:
+    low: 0.5
+    high: 1.5
+    name: 'a2'
